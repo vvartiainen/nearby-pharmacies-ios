@@ -1,4 +1,5 @@
 import Foundation
+import PharmacyCore
 
 /// The language and locale the app uses for its interface and formatting.
 ///
@@ -58,9 +59,10 @@ struct AppLocalization: Sendable {
     String(localized: "Illustrative example distance", bundle: bundle, locale: locale)
   }
 
-  /// A labeled straight-line distance, for example "0.4 km straight line".
+  /// A labeled straight-line distance, for example "1.7 km straight line". The distance is
+  /// rounded for display by `DistanceFormatting` from PharmacyCore, the same rule as the web app.
   func straightLineDistance(meters: Double) -> String {
-    let distance = DistanceFormatting.kilometers(meters: meters, locale: locale)
+    let distance = DistanceFormatting.distance(meters: meters, locale: locale)
     return String(localized: "\(distance) straight line", bundle: bundle, locale: locale)
   }
 }

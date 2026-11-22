@@ -2,7 +2,7 @@
   "sourceLanguage" : "en",
   "strings" : {
     "%@ straight line" : {
-      "comment" : "A distance measured in a straight line, for example \"0.4 km straight line\". The argument is a formatted distance.",
+      "comment" : "A distance measured in a straight line, for example \"1.7 km straight line\". The argument is a formatted distance.",
       "localizations" : {
         "en" : {
           "stringUnit" : {

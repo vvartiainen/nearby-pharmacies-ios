@@ -1,8 +1,9 @@
 import SwiftUI
 
 struct ContentView: View {
-  /// A fixed sample distance shown until real pharmacy data is available.
-  static let illustrativeDistanceMeters = 400.0
+  /// A fixed sample distance shown until ranking is wired to the UI. It matches the web app's
+  /// sample: "1.7 km straight line", "1,7 km linnuntietä".
+  static let illustrativeDistanceMeters = 1_700.0
 
   let localization: AppLocalization
 

@@ -2,9 +2,10 @@
 
 A native SwiftUI app that will find the nearest mapped pharmacy in Finland. Product
 decisions live in the planning documents outside this repository. This repository has
-the runnable skeleton only. The app shows one localized screen: a heading, a caption
-saying the distance is an illustrative example, and a fixed 0.4 km straight-line
-distance. There is no map, location, geocoding or pharmacy data yet.
+the runnable skeleton, the bundled pharmacy snapshot and the ranking logic. The app shows
+one localized screen: a heading, a caption saying the distance is an illustrative example,
+and a fixed 1 700 m straight-line distance ("1.7 km straight line"), the same sample as the
+web app. The ranking is not wired to the UI yet, and there is no map, location or geocoding.
 
 ## Layout
 
@@ -12,7 +13,10 @@ distance. There is no map, location, geocoding or pharmacy data yet.
 | --- | --- |
 | `NearbyPharmacies.xcodeproj` | Project with the shared `NearbyPharmacies` scheme. Folders are synchronized groups, so new files under the three source folders join their target automatically. |
 | `NearbyPharmacies/` | App sources and `Localizable.xcstrings` (English and Finnish). |
+| `NearbyPharmacies/Resources/Data/` | Synced from the web repo, never edited by hand: `pharmacies.fi.json`, `places.fi.json`, `manifest.fi.json`, `ODbL-NOTICE.txt`. Bundled in the app. See [Pharmacy data](#pharmacy-data). |
 | `NearbyPharmaciesTests/` | Swift Testing unit tests, hosted in the app. |
+| `NearbyPharmaciesTests/Fixtures/ranking-v1.json` | Shared ranking fixture, synced from the web repo. Never edit by hand. |
+| `Packages/PharmacyCore/` | Local Swift package (iOS and macOS): haversine distance, ranking, distance display rounding, data models and the bundle loader. The app target links it. Its tests run on the Mac. |
 | `NearbyPharmaciesUITests/` | XCUITest launch smoke tests in English and Finnish. |
 | `scripts/style.sh` | swift-format check and format commands. |
 | `scripts/agent-stop-hook.sh` | Agent stop hook that checks changed Swift files. |
@@ -20,8 +24,9 @@ distance. There is no map, location, geocoding or pharmacy data yet.
 | `.build/` | Ignored. All build output, results and screenshots from the commands below. |
 
 Requirements: Xcode 16 or later with an iOS 18 or later simulator runtime. The repo was
-set up and built with Xcode 27.2. It has no package dependencies. swift-format ships
-with Xcode.
+set up and built with Xcode 27.2. Its only package is the local `Packages/PharmacyCore`;
+there are no remote package dependencies. swift-format ships with Xcode. The PharmacyCore
+tests need only Xcode or the Swift toolchain on the Mac, no simulator runtime.
 
 Run every command from the repository root. Commands that use `xcodebuild` or `simctl`
 need CoreSimulator, which agent sandboxes usually block. Run them outside the sandbox,
@@ -81,16 +86,42 @@ and a larger distance line.
 
 | Language | Heading | Caption | Distance |
 | --- | --- | --- | --- |
-| Finnish (`fi_FI`) | Lähin apteekki | Havainnollistava esimerkkietäisyys | 0,4 km linnuntietä |
-| English (`en_GB`) | Nearest pharmacy | Illustrative example distance | 0.4 km straight line |
+| Finnish (`fi_FI`) | Lähin apteekki | Havainnollistava esimerkkietäisyys | 1,7 km linnuntietä |
+| English (`en_GB`) | Nearest pharmacy | Illustrative example distance | 1.7 km straight line |
 
 ## Tests
+
+### Ranking and data (runs on the Mac)
+
+The PharmacyCore package tests are the runnable check for ranking, distance formatting and
+the bundled data. They need no simulator:
+
+```sh
+swift test --package-path Packages/PharmacyCore
+```
+
+Expected last line: `Test run with 26 tests in 5 suites passed`. They check every origin of
+the shared fixture (order, distances within its tolerance, English and Finnish labels), all
+19 display-rounding cases, the zero distance, the exact three-way tie, two distances with the
+same label, decoding of records without name, address or hours, the bundled snapshot and place
+index against the manifest's counts, and the SHA-256 of each data file against the
+manifest. Fixture labels are compared after its `labelComparison` rule (U+00A0 and U+202F
+become spaces). A separate test pins the exact characters, which match the web app's `Intl`
+output: Finnish groups with U+00A0 ("1 234 km"), and both languages put U+0020 before the
+unit.
+
+SwiftPM's build writes files atomically through a system temporary folder that agent
+sandboxes deny, so run `swift test` outside the sandbox too. Build output goes to the
+ignored `Packages/PharmacyCore/.build/`.
+
+### App tests (need a simulator)
 
 xcodebuild refuses to overwrite a result bundle, so each command deletes its old bundle
 first.
 
-Unit tests (Swift Testing: language selection, English fallback, distance formatting
-and the string catalog):
+Unit tests (Swift Testing: language selection, English fallback, the locale passed to the
+distance formatter, the string catalog against every fixture label, and the data files in the
+app bundle):
 
 ```sh
 rm -rf .build/results/unit.xcresult && xcodebuild test -project NearbyPharmacies.xcodeproj -scheme NearbyPharmacies -destination 'platform=iOS Simulator,id=SIMULATOR_UDID' -derivedDataPath .build/DerivedData -resultBundlePath .build/results/unit.xcresult -only-testing:NearbyPharmaciesTests
@@ -114,6 +145,37 @@ Compile the app and both test bundles without a simulator:
 ```sh
 xcodebuild build-for-testing -project NearbyPharmacies.xcodeproj -scheme NearbyPharmacies -destination 'generic/platform=iOS Simulator' -derivedDataPath .build/DerivedData
 ```
+
+## Pharmacy data
+
+The data and the ranking fixture come from the web repository
+(`nearby-pharmacies-web`), which owns the importer, the snapshot and the ranking contract.
+Never edit the copies here by hand. To update them, run from the web repository root:
+
+```sh
+pnpm run data:sync-ios -- --ios-repo ../nearby-pharmacies-ios
+pnpm run data:verify -- --ios-repo ../nearby-pharmacies-ios
+```
+
+The sync prints `copied …` for each file and `data:verify: 5 file(s) match`. Verify alone
+exits 1 with `missing:` or `differs:` lines when a copy is stale. Commit both repositories
+together.
+
+Where the copies go and who reads them:
+
+- `NearbyPharmacies/Resources/Data/` is inside the app's synchronized group, so Xcode copies
+  the four files into the top level of `NearbyPharmacies.app`. The app reads them with
+  `PharmacyDataLoader(bundle: .main)`.
+- `NearbyPharmaciesTests/Fixtures/ranking-v1.json` lands in the unit-test bundle the same
+  way.
+- The PharmacyCore tests read both folders in place, relative to their source file
+  (`Tests/PharmacyCoreTests/SyncedFiles.swift`, through `#filePath`). The package has no
+  second copy and no resources, so `data:verify` covers every file the tests read.
+
+The ranking contract: haversine distance with the mean Earth radius 6 371 008.8 m
+(`Haversine.earthMeanRadiusMeters`, the only definition), ascending unrounded distance, exact
+ties by `id` in UTF-16 code-unit order, and display rounding from the design spec. Change it
+only together with the web repository and its fixture.
 
 ## Style
 
@@ -176,6 +238,8 @@ clarity, as in `test(locale): cover English fallback`.
 - `AppLocalization` picks the first preferred language the app supports, falling back
   to English. It reads strings from that language's bundle. It formats numbers with a
   locale that combines that language with the device region. An English interface on a
-  Finnish-region device therefore shows "0,4 km". Unit tests cover this case.
-- Distances are shown in kilometers with one decimal place. Task 5 will define the final
-  rounding rule.
+  Finnish-region device therefore shows "1,7 km". Unit tests cover this case.
+- Format distances only with `DistanceFormatting.distance(meters:locale:)` from PharmacyCore.
+  Under 1 km it rounds to the nearest 10 m, from 1 km to under 10 km to the nearest 0.1 km,
+  and from 10 km to whole kilometres. A value that rounds up to the next band uses that band,
+  so 995 m shows "1.0 km" and 9 950 m shows "10 km". This matches the web app.

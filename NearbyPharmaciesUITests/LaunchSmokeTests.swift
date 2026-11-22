@@ -13,7 +13,7 @@ final class LaunchSmokeTests: XCTestCase {
       locale: "en_GB",
       heading: "Nearest pharmacy",
       note: "Illustrative example distance",
-      distance: "0.4 km straight line"
+      distance: "1.7 km straight line"
     )
   }
 
@@ -24,7 +24,7 @@ final class LaunchSmokeTests: XCTestCase {
       locale: "fi_FI",
       heading: "Lähin apteekki",
       note: "Havainnollistava esimerkkietäisyys",
-      distance: "0,4 km linnuntietä"
+      distance: "1,7 km linnuntietä"
     )
   }
 

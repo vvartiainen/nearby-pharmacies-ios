@@ -1,4 +1,5 @@
 import Foundation
+import PharmacyCore
 import Testing
 
 @testable import NearbyPharmacies
@@ -42,22 +43,24 @@ struct LanguageSelectionTests {
   }
 }
 
+/// The rounding rule itself is tested in PharmacyCore (`swift test --package-path
+/// Packages/PharmacyCore`). These cases check the locale the app passes to it.
 struct DistanceFormattingTests {
   @Test(
-    "Formats kilometers with one decimal for the active locale",
+    "Formats distances for the active locale",
     arguments: [
-      (400.0, "en_GB", "0.4 km"),
-      (400.0, "en_US", "0.4 km"),
+      (1_700.0, "en_GB", "1.7 km"),
+      (1_700.0, "en_US", "1.7 km"),
       // English text with Finnish regional number conventions.
-      (400.0, "en_FI", "0,4 km"),
-      (400.0, "fi_FI", "0,4 km"),
-      (1_234.0, "en_GB", "1.2 km"),
-      (1_234.0, "fi_FI", "1,2 km"),
-      (0.0, "fi_FI", "0,0 km"),
+      (1_700.0, "en_FI", "1,7 km"),
+      (1_700.0, "fi_FI", "1,7 km"),
+      (295.96, "fi_FI", "300 m"),
+      (1_234_000.0, "fi_FI", "1 234 km"),
+      (0.0, "fi_FI", "0 m"),
     ]
   )
-  func formatsKilometers(meters: Double, localeIdentifier: String, expected: String) {
-    let formatted = DistanceFormatting.kilometers(
+  func formatsDistance(meters: Double, localeIdentifier: String, expected: String) {
+    let formatted = DistanceFormatting.distance(
       meters: meters, locale: Locale(identifier: localeIdentifier))
     #expect(normalizingSpaces(formatted) == expected)
   }
@@ -71,7 +74,7 @@ struct LocalizedStringTests {
     #expect(localization.heading == "Nearest pharmacy")
     #expect(localization.illustrativeNote == "Illustrative example distance")
     #expect(
-      normalizingSpaces(localization.straightLineDistance(meters: 400)) == "0.4 km straight line")
+      normalizingSpaces(localization.straightLineDistance(meters: 1_700)) == "1.7 km straight line")
   }
 
   @Test func finnishStrings() {
@@ -80,7 +83,7 @@ struct LocalizedStringTests {
     #expect(localization.heading == "Lähin apteekki")
     #expect(localization.illustrativeNote == "Havainnollistava esimerkkietäisyys")
     #expect(
-      normalizingSpaces(localization.straightLineDistance(meters: 400)) == "0,4 km linnuntietä")
+      normalizingSpaces(localization.straightLineDistance(meters: 1_700)) == "1,7 km linnuntietä")
   }
 
   @Test func unsupportedLanguageUsesEnglishStrings() {
@@ -89,6 +92,57 @@ struct LocalizedStringTests {
     #expect(localization.heading == "Nearest pharmacy")
   }
 }
+
+/// Checks the string catalog's straight-line message against every label in the shared ranking
+/// fixture, which `pnpm run data:sync-ios` copies into `Fixtures/` of this test bundle.
+struct FixtureLabelTests {
+  private struct Fixture: Decodable {
+    struct Origin: Decodable {
+      struct Expected: Decodable {
+        struct Label: Decodable {
+          let en: String
+          let fi: String
+        }
+        let id: String
+        let distanceMeters: Double
+        let label: Label
+      }
+      let expected: [Expected]
+    }
+    let origins: [Origin]
+  }
+
+  @Test func catalogLabelsMatchTheFixture() throws {
+    let url = try #require(
+      Bundle(for: TestBundleToken.self).url(forResource: "ranking-v1", withExtension: "json"))
+    let fixture = try JSONDecoder().decode(Fixture.self, from: Data(contentsOf: url))
+    let english = AppLocalization(preferredLanguages: ["en"], region: nil)
+    let finnish = AppLocalization(preferredLanguages: ["fi"], region: nil)
+    for result in fixture.origins.flatMap(\.expected) {
+      #expect(
+        normalizingSpaces(english.straightLineDistance(meters: result.distanceMeters))
+          == result.label.en, "\(result.id)")
+      #expect(
+        normalizingSpaces(finnish.straightLineDistance(meters: result.distanceMeters))
+          == result.label.fi, "\(result.id)")
+    }
+  }
+}
+
+/// The app bundle carries the synced data from `NearbyPharmacies/Resources/Data`.
+struct BundledDataTests {
+  @Test func appBundleHasTheSyncedData() throws {
+    let loader = PharmacyDataLoader(bundle: .main)
+    let manifest = try loader.loadManifest()
+    #expect(try loader.loadSnapshot().pharmacies.count == manifest.counts["pharmacies"])
+    if manifest.files.places != nil {
+      #expect(try loader.loadPlaceIndex()?.places.count == manifest.counts["places"])
+    }
+    #expect(Bundle.main.url(forResource: "ODbL-NOTICE", withExtension: "txt") != nil)
+  }
+}
+
+private final class TestBundleToken {}
 
 /// Formatters may use a no-break space between the number and the unit.
 private func normalizingSpaces(_ text: String) -> String {
