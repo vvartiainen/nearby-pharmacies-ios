@@ -60,6 +60,8 @@ struct AppLocalization: Sendable {
   var addressUnavailable: String { text("Address unavailable") }
   var unnamedPharmacy: String { text("Unnamed pharmacy") }
   var hoursHeading: String { text("Opening hours") }
+  var weeklyHoursHeading: String { text("Usual weekly hours") }
+  var holidayHoursNote: String { text("Holiday hours may differ.") }
   var hoursUnavailable: String { text("Hours unavailable") }
   var closed: String { text("Closed") }
   var backToResults: String { text("Back to results") }

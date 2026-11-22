@@ -75,6 +75,8 @@ struct LocalizedStringTests {
     #expect(localization.defaultOrigin == "Helsinki Central Railway Station (default)")
     #expect(localization.scopeAndCount(784) == "Mapped pharmacies in Finland · 784")
     #expect(localization.weekdays == ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"])
+    #expect(localization.weeklyHoursHeading == "Usual weekly hours")
+    #expect(localization.holidayHoursNote == "Holiday hours may differ.")
     #expect(localization.hoursUnavailable == "Hours unavailable")
     #expect(localization.addressUnavailable == "Address unavailable")
     #expect(
@@ -90,6 +92,8 @@ struct LocalizedStringTests {
       normalizingSpaces(localization.scopeAndCount(1_234))
         == "Kartoitetut apteekit Suomessa · 1 234")
     #expect(localization.weekdays == ["ma", "ti", "ke", "to", "pe", "la", "su"])
+    #expect(localization.weeklyHoursHeading == "Tavalliset aukioloajat")
+    #expect(localization.holidayHoursNote == "Pyhinä aukioloajat voivat poiketa.")
     #expect(localization.hoursUnavailable == "Aukioloajat eivät saatavilla")
     #expect(localization.addressUnavailable == "Osoite ei saatavilla")
     #expect(

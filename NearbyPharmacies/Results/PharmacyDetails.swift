@@ -44,26 +44,34 @@ struct PharmacyDetails: View {
   }
 }
 
-/// "Opening hours", then one line per day, Monday first, or the raw value, or a notice.
 struct HoursBlock: View {
   let openingHours: String?
   let localization: AppLocalization
   @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
   var body: some View {
+    let value = openingHours?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    let hours = value.isEmpty ? nil : OpeningHours.interpret(value)
+    let heading =
+      if case .weekly = hours {
+        localization.weeklyHoursHeading
+      } else {
+        localization.hoursHeading
+      }
+
     VStack(alignment: .leading, spacing: Spacing.sm) {
-      Text(localization.hoursHeading)
+      Text(heading)
         .font(.body.weight(.semibold))
         .foregroundStyle(Color.textPrimary)
         .accessibilityAddTraits(.isHeader)
         .accessibilityIdentifier("details.hoursHeading")
-      content
+      content(hours)
     }
   }
 
-  @ViewBuilder private var content: some View {
-    let value = openingHours?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-    if value.isEmpty {
+  @ViewBuilder private func content(_ hours: OpeningHours.Interpreted?) -> some View {
+    switch hours {
+    case nil:
       Text(localization.hoursUnavailable)
         .font(.body)
         .foregroundStyle(Color.noticeText)
@@ -72,16 +80,17 @@ struct HoursBlock: View {
         .background(Color.noticeSurface, in: .rect(cornerRadius: Radius.md))
         .overlay(RoundedRectangle(cornerRadius: Radius.md).strokeBorder(Color.noticeBorder))
         .accessibilityIdentifier("details.hoursUnavailable")
-    } else {
-      switch OpeningHours.interpret(value) {
-      case .raw(let text):
-        Text(text)
-          .font(.body)
-          .foregroundStyle(Color.textPrimary)
-          .accessibilityIdentifier("details.hoursRaw")
-      case .weekly(let days):
-        week(days)
-      }
+    case .raw(let text):
+      Text(text)
+        .font(.body)
+        .foregroundStyle(Color.textPrimary)
+        .accessibilityIdentifier("details.hoursRaw")
+    case .weekly(let days):
+      Text(localization.holidayHoursNote)
+        .font(.subheadline)
+        .foregroundStyle(Color.textSecondary)
+        .accessibilityIdentifier("details.holidayHoursNote")
+      week(days)
     }
   }
 

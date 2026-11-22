@@ -222,6 +222,23 @@
         }
       }
     },
+    "Holiday hours may differ." : {
+      "comment" : "Note shown above the regular weekly schedule.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Holiday hours may differ."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pyhinä aukioloajat voivat poiketa."
+          }
+        }
+      }
+    },
     "Hours unavailable" : {
       "comment" : "Notice when the data has no opening hours.",
       "localizations" : {
@@ -410,7 +427,7 @@
       }
     },
     "Opening hours" : {
-      "comment" : "Heading of the opening hours in pharmacy details.",
+      "comment" : "Heading for raw or missing opening hours in pharmacy details.",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -677,6 +694,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Käytä sijaintiani"
+          }
+        }
+      }
+    },
+    "Usual weekly hours" : {
+      "comment" : "Heading for the regular weekly schedule in pharmacy details.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usual weekly hours"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tavalliset aukioloajat"
           }
         }
       }

@@ -95,7 +95,10 @@ final class SelectionTests: XCTestCase {
     XCTAssertTrue(
       app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "07:30–18:00")).firstMatch
         .waitForExistence(timeout: 5))
-    XCTAssertTrue(app.staticTexts["Opening hours"].exists)
+    XCTAssertEqual(app.staticTexts["details.hoursHeading"].label, "Usual weekly hours")
+    let holidayNote = app.staticTexts["details.holidayHoursNote"]
+    XCTAssertTrue(holidayNote.isHittable)
+    XCTAssertEqual(holidayNote.label, "Holiday hours may differ.")
     attachScreenshot(app, name: "Details with hours (en)")
 
     back.tap()
@@ -200,6 +203,9 @@ final class SelectionTests: XCTestCase {
     XCTAssertTrue(
       app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "7.30–18.00")).firstMatch
         .exists)
+    XCTAssertEqual(app.staticTexts["details.hoursHeading"].label, "Tavalliset aukioloajat")
+    XCTAssertEqual(
+      app.staticTexts["details.holidayHoursNote"].label, "Pyhinä aukioloajat voivat poiketa.")
 
     app.buttons["details.back"].tap()
     XCTAssertTrue(app.staticTexts["results.title"].waitForExistence(timeout: 5))
@@ -215,6 +221,8 @@ final class SelectionTests: XCTestCase {
     XCTAssertTrue(missing.waitForExistence(timeout: 5))
     XCTAssertTrue(missing.isHittable)
     XCTAssertEqual(missing.label, "Aukioloajat eivät saatavilla")
+    XCTAssertEqual(app.staticTexts["details.hoursHeading"].label, "Aukioloajat")
+    XCTAssertFalse(app.staticTexts["details.holidayHoursNote"].exists)
     attachScreenshot(app, name: "Missing address and hours (fi)")
 
     app.buttons["details.back"].tap()
