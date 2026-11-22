@@ -33,10 +33,15 @@ final class GatedLocation: LocationProviding {
   var needsPermission = true
   private var waiting: CheckedContinuation<Result<LocationFix, LocationFailure>, Never>?
   private(set) var requests = 0
+  private(set) var cancellations = 0
 
   func currentLocation() async -> Result<LocationFix, LocationFailure> {
     requests += 1
     return await withCheckedContinuation { waiting = $0 }
+  }
+
+  func cancelLocation() {
+    cancellations += 1
   }
 
   func answer(_ result: Result<LocationFix, LocationFailure>) {
@@ -148,6 +153,7 @@ struct OriginControllerTests {
     await settle { location.requests == 1 }
     let point = Coordinate(lat: 60.2, lon: 24.9)
     controller.choosePoint(point)
+    #expect(location.cancellations == 1)
     #expect(controller.finder.origin == Origin(kind: .pin, coordinate: point))
     #expect(!controller.finder.fitsMapToOrigin, "A point on the map keeps the viewport")
 
@@ -155,6 +161,16 @@ struct OriginControllerTests {
     try? await Task.sleep(for: .milliseconds(50))
     #expect(controller.finder.origin.kind == .pin)
     #expect(controller.finder.originLabel == "Dropped pin")
+    #expect(controller.location == .idle)
+  }
+
+  @Test func choosingAPointBeforeLocationStartsSkipsTheRequest() async {
+    let controller = controller()
+    controller.requestLocation()
+    controller.choosePoint(tampere)
+    // The scheduled location task and this continuation both run on the main actor.
+    await Task { @MainActor in }.value
+    #expect(location.requests == 0)
     #expect(controller.location == .idle)
   }
 

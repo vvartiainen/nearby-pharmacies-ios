@@ -94,4 +94,7 @@ final class ScriptedLocation: LocationProviding {
     try? await Task.sleep(for: delay)
     return result
   }
+
+  // Keep delayed replies available to exercise the controller's stale-result guard.
+  func cancelLocation() {}
 }

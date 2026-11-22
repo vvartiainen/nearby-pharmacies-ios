@@ -120,6 +120,7 @@ final class OriginController {
     locationRequest = request
     location = .pending
     Task { [weak self, locator] in
+      guard self?.locationRequest == request else { return }
       let result = await locator.currentLocation()
       guard let self, self.locationRequest == request else { return }
       self.locationRequest = nil
@@ -148,6 +149,7 @@ final class OriginController {
     addressTask?.cancel()
     addressTask = nil
     cancelSearch()
+    if locationRequest != nil { locator.cancelLocation() }
     locationRequest = nil
     location = .idle
     dismissLocationOffer()

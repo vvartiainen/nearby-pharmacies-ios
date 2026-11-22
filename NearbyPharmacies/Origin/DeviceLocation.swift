@@ -24,73 +24,115 @@ protocol LocationProviding: AnyObject {
   /// True until the user has answered the system permission prompt.
   var needsPermission: Bool { get }
   func currentLocation() async -> Result<LocationFix, LocationFailure>
+  func cancelLocation()
 }
 
 @MainActor
 final class DeviceLocation: NSObject, LocationProviding, @preconcurrency CLLocationManagerDelegate {
-  static let timeout: Duration = .seconds(10)
-
-  private let manager = CLLocationManager()
-  private var authorization: CheckedContinuation<Void, Never>?
-  private var fix: CheckedContinuation<Result<LocationFix, LocationFailure>, Never>?
-
-  override init() {
-    super.init()
-    manager.delegate = self
-    manager.desiredAccuracy = kCLLocationAccuracyHundredMeters
+  private struct Request {
+    let manager: CLLocationManager
+    let continuation: CheckedContinuation<Result<LocationFix, LocationFailure>, Never>
+    var timeout: Task<Void, Never>?
   }
 
-  var needsPermission: Bool { manager.authorizationStatus == .notDetermined }
+  private let makeManager: () -> CLLocationManager
+  private let waitForTimeout: @MainActor () async throws -> Void
+  private var request: Request?
+
+  init(
+    makeManager: @escaping () -> CLLocationManager = { CLLocationManager() },
+    waitForTimeout: @escaping @MainActor () async throws -> Void = {
+      try await Task.sleep(for: .seconds(10))
+    }
+  ) {
+    self.makeManager = makeManager
+    self.waitForTimeout = waitForTimeout
+  }
+
+  var needsPermission: Bool {
+    (request?.manager ?? makeManager()).authorizationStatus == .notDetermined
+  }
 
   func currentLocation() async -> Result<LocationFix, LocationFailure> {
-    guard fix == nil else { return .failure(.unavailable) }
-    if manager.authorizationStatus == .notDetermined {
-      await withCheckedContinuation { continuation in
-        authorization = continuation
-        manager.requestWhenInUseAuthorization()
-      }
-    }
-    switch manager.authorizationStatus {
-    case .denied, .restricted: return .failure(.denied)
-    case .notDetermined: return .failure(.unavailable)
-    default: break
-    }
+    guard request == nil else { return .failure(.unavailable) }
     return await withCheckedContinuation { continuation in
-      fix = continuation
-      manager.requestLocation()
-      Task { [weak self] in
-        try? await Task.sleep(for: Self.timeout)
-        self?.finish(.failure(.timeout))
+      // Each attempt has its own delegate source, so a queued callback can't affect a retry.
+      let manager = makeManager()
+      request = Request(manager: manager, continuation: continuation)
+      manager.desiredAccuracy = kCLLocationAccuracyHundredMeters
+      manager.delegate = self
+      if manager.authorizationStatus == .notDetermined {
+        manager.requestWhenInUseAuthorization()
+      } else {
+        locationManagerDidChangeAuthorization(manager)
       }
     }
+  }
+
+  func cancelLocation() {
+    finish(.failure(.unavailable))
   }
 
   private func finish(_ result: Result<LocationFix, LocationFailure>) {
-    guard let fix else { return }
-    self.fix = nil
-    fix.resume(returning: result)
+    guard let request else { return }
+    self.request = nil
+    request.manager.delegate = nil
+    if let timeout = request.timeout {
+      timeout.cancel()
+      request.manager.stopUpdatingLocation()
+    }
+    request.continuation.resume(returning: result)
   }
 
   func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-    guard manager.authorizationStatus != .notDetermined, let authorization else { return }
-    self.authorization = nil
-    authorization.resume()
+    guard let request, request.manager === manager else { return }
+    switch manager.authorizationStatus {
+    case .authorizedAlways, .authorizedWhenInUse:
+      guard request.timeout == nil else { return }
+      self.request?.timeout = Task { [weak self, waitForTimeout] in
+        do {
+          try await waitForTimeout()
+        } catch {
+          return
+        }
+        guard !Task.isCancelled, self?.request?.manager === manager else { return }
+        self?.finish(.failure(.timeout))
+      }
+      manager.requestLocation()
+    case .denied, .restricted:
+      finish(.failure(.denied))
+    case .notDetermined:
+      if request.timeout != nil { finish(.failure(.unavailable)) }
+    @unknown default:
+      finish(.failure(.unavailable))
+    }
   }
 
   func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-    guard let location = locations.last else { return }
-    // A negative accuracy marks an invalid horizontal position.
+    guard request?.manager === manager, request?.timeout != nil else { return }
+    guard
+      let location = locations.last(where: {
+        $0.horizontalAccuracy.isFinite && $0.horizontalAccuracy >= 0
+          && CLLocationCoordinate2DIsValid($0.coordinate)
+      })
+    else {
+      finish(.failure(.unavailable))
+      return
+    }
     finish(
       .success(
         LocationFix(
           Coordinate(lat: location.coordinate.latitude, lon: location.coordinate.longitude),
-          accuracy: location.horizontalAccuracy < 0 ? .infinity : location.horizontalAccuracy)))
+          accuracy: location.horizontalAccuracy)))
   }
 
   func locationManager(_ manager: CLLocationManager, didFailWithError error: any Error) {
-    let code = (error as? CLError)?.code
-    // `locationUnknown` is temporary: Core Location keeps trying until the timeout.
-    if code == .locationUnknown { return }
-    finish(.failure(code == .denied ? .denied : .unavailable))
+    guard request?.manager === manager, request?.timeout != nil else { return }
+    switch (error as? CLError)?.code {
+    case .denied: finish(.failure(.denied))
+    // For requestLocation(), this error ends the one-shot request.
+    case .locationUnknown: finish(.failure(.timeout))
+    default: finish(.failure(.unavailable))
+    }
   }
 }
