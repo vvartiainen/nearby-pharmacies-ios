@@ -62,7 +62,8 @@ final class OriginJourneyTests: XCTestCase {
     offer.buttons["Use location"].tap()
 
     waitForLabel(first, "BEGINSWITH", "Tullintorin apteekki")
-    XCTAssertEqual(JourneyApp.originText(app), "Your location")
+    // The bundled address index names the nearest street address, as on web.
+    waitForOrigin(app, "Near Rautatienkatu 25, Tampere")
     attachScreenshot(app, name: "Ranked from the device location (en)")
 
     // Pins and rows stay in sync for the new results.
@@ -85,8 +86,8 @@ final class OriginJourneyTests: XCTestCase {
     waitForLabel(JourneyApp.firstRow(app), "BEGINSWITH", "Tullintorin apteekki")
     sleep(1)
     // The list returns to the top with the space above the field kept, and no keyboard opens.
-    // "Your location" needs one line where the default needed two, which moves the centred text
-    // about 5 points. Losing the space above the field would move it about 28.
+    // The new label can need a different number of lines than the default, which moves the
+    // centred text a few points. Losing the space above the field would move it about 28.
     XCTAssertEqual(field.frame.minY, fieldTop, accuracy: 12)
     XCTAssertFalse(field.hasFocus)
     XCTAssertEqual(app.keyboards.count, 0)
@@ -217,7 +218,7 @@ final class OriginJourneyTests: XCTestCase {
       language: "en", locale: "en_GB",
       environment: [
         "UITEST_GEOCODER": "fixture", "UITEST_GEOCODER_RESPONSE": Self.kauppakatu,
-        "UITEST_GEOCODER_DELAY": "4",
+        "UITEST_GEOCODER_DELAY": "4", "UITEST_ADDRESS_INDEX": "none",
       ])
     let field = app.textFields["search.field"]
     XCTAssertTrue(field.waitForExistence(timeout: 15))
@@ -245,7 +246,10 @@ final class OriginJourneyTests: XCTestCase {
   func testChooseOnMapWinsOverALateLocationFixInFinnish() {
     let app = JourneyApp.launch(
       language: "fi", locale: "fi_FI",
-      environment: ["UITEST_LOCATION": Self.tampere, "UITEST_LOCATION_DELAY": "15"])
+      environment: [
+        "UITEST_LOCATION": Self.tampere, "UITEST_LOCATION_DELAY": "15",
+        "UITEST_ADDRESS_INDEX": "none",
+      ])
     let location = app.buttons["search.location"]
     XCTAssertTrue(location.waitForExistence(timeout: 15))
     location.tap()

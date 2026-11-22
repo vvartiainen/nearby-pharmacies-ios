@@ -101,12 +101,23 @@ enum LocationFailure: Error, Hashable {
   case unavailable
 }
 
+/// A device position and its horizontal uncertainty in metres.
+struct LocationFix: Hashable, Sendable {
+  let coordinate: Coordinate
+  let accuracy: Double
+
+  init(_ coordinate: Coordinate, accuracy: Double) {
+    self.coordinate = coordinate
+    self.accuracy = accuracy
+  }
+}
+
 /// The device's current location, requested only when the user asks for it.
 @MainActor
 protocol LocationProviding: AnyObject {
   /// True until the user has answered the system permission prompt.
   var needsPermission: Bool { get }
-  func currentLocation() async -> Result<Coordinate, LocationFailure>
+  func currentLocation() async -> Result<LocationFix, LocationFailure>
 }
 
 /// Foreground Core Location: asks for When In Use permission, then for one fix within 10 seconds.
@@ -116,7 +127,7 @@ final class DeviceLocation: NSObject, LocationProviding, @preconcurrency CLLocat
 
   private let manager = CLLocationManager()
   private var authorization: CheckedContinuation<Void, Never>?
-  private var fix: CheckedContinuation<Result<Coordinate, LocationFailure>, Never>?
+  private var fix: CheckedContinuation<Result<LocationFix, LocationFailure>, Never>?
 
   override init() {
     super.init()
@@ -126,7 +137,7 @@ final class DeviceLocation: NSObject, LocationProviding, @preconcurrency CLLocat
 
   var needsPermission: Bool { manager.authorizationStatus == .notDetermined }
 
-  func currentLocation() async -> Result<Coordinate, LocationFailure> {
+  func currentLocation() async -> Result<LocationFix, LocationFailure> {
     guard fix == nil else { return .failure(.unavailable) }
     if manager.authorizationStatus == .notDetermined {
       await withCheckedContinuation { continuation in
@@ -149,7 +160,7 @@ final class DeviceLocation: NSObject, LocationProviding, @preconcurrency CLLocat
     }
   }
 
-  private func finish(_ result: Result<Coordinate, LocationFailure>) {
+  private func finish(_ result: Result<LocationFix, LocationFailure>) {
     guard let fix else { return }
     self.fix = nil
     fix.resume(returning: result)
@@ -163,9 +174,12 @@ final class DeviceLocation: NSObject, LocationProviding, @preconcurrency CLLocat
 
   func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
     guard let location = locations.last else { return }
+    // A negative accuracy marks an invalid horizontal position.
     finish(
       .success(
-        Coordinate(lat: location.coordinate.latitude, lon: location.coordinate.longitude)))
+        LocationFix(
+          Coordinate(lat: location.coordinate.latitude, lon: location.coordinate.longitude),
+          accuracy: location.horizontalAccuracy < 0 ? .infinity : location.horizontalAccuracy)))
   }
 
   func locationManager(_ manager: CLLocationManager, didFailWithError error: any Error) {

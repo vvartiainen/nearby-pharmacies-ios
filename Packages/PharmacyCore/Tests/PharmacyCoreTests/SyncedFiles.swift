@@ -14,6 +14,8 @@ enum SyncedFiles {
     .deletingLastPathComponent()
 
   static let dataDirectory = repositoryRoot.appending(path: "NearbyPharmacies/Resources/Data")
+  static let addressIndexDirectory = repositoryRoot.appending(
+    path: "NearbyPharmacies/Resources/AddressIndex.bundle")
   static let fixtureURL = repositoryRoot.appending(
     path: "NearbyPharmaciesTests/Fixtures/ranking-v1.json")
 

@@ -20,6 +20,7 @@ struct NearbyPharmaciesApp: App {
         geocoder: scripted ? ScriptedServices.geocoder() : NominatimGeocoder(),
         locator: scripted ? ScriptedServices.locator() : DeviceLocation(),
         places: places,
+        addresses: scripted ? ScriptedServices.addresses() : .bundled,
         defaults: scripted ? ScriptedServices.defaults() : .standard))
   }
 

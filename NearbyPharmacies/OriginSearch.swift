@@ -63,7 +63,7 @@ struct OriginSearch: View {
         .autocorrectionDisabled()
         .foregroundStyle(Color.textPrimary)
         // VoiceOver reads the field's label, then the starting point it shows.
-        .accessibilityValue(showsOrigin ? finder.originLabel : draft)
+        .accessibilityValue(showsOrigin ? finder.originFieldLabel : draft)
         .accessibilityIdentifier("search.field")
         if showsOrigin {
           VStack(alignment: .leading, spacing: 0) {

@@ -59,9 +59,11 @@ final class PharmacyFinder {
   /// Number of pharmacies in the bundled Finland snapshot.
   let datasetCount: Int
   private let pharmacies: [Pharmacy]
-  private let coverageGeometry: CoverageGeometry?
+  let coverageGeometry: CoverageGeometry?
 
   private(set) var origin: Origin
+  /// The nearest street address of a device fix or a chosen point, once the lookup finds one.
+  private(set) var originAddress: AddressIndex.Address?
   private(set) var results: [PharmacyResult] = []
   /// One selected pharmacy drives the row, the pin and the details. Selection never moves the
   /// origin.
@@ -109,6 +111,7 @@ final class PharmacyFinder {
   /// it is cleared and the sheet shows the list.
   func setOrigin(_ origin: Origin, fitMap: Bool = true) {
     self.origin = origin
+    originAddress = nil
     selectedID = nil
     showsDetails = false
     fitsMapToOrigin = fitMap
@@ -118,6 +121,14 @@ final class PharmacyFinder {
 
   var selected: PharmacyResult? {
     selectedID.flatMap { id in results.first { $0.id == id } }
+  }
+
+  /// Labels the current device fix or chosen point with a nearby street address.
+  func setOriginAddress(_ address: AddressIndex.Address?) {
+    switch origin.kind {
+    case .device, .pin: originAddress = address
+    case .default, .search: break
+    }
   }
 
   /// Selects a pharmacy from its row or pin and shows its details.
@@ -159,15 +170,24 @@ final class PharmacyFinder {
     }
   }
 
-  /// The first line of the origin summary: the label, or a match's place or street.
+  /// The first line of the origin summary: the label, a match's place or street, or "Near …"
+  /// for a device fix or a chosen point with a nearby address.
   var originTitle: String {
     if case .search(let title, _) = origin.kind { return title }
+    if let originAddress { return localization.nearAddress(originAddress.street) }
     return originLabel
   }
 
-  /// The smaller locality line under a match's title, or nil.
+  /// The smaller locality line under the title, or nil.
   var originContext: String? {
     if case .search(_, let context) = origin.kind, !context.isEmpty { return context }
+    if let city = originAddress?.city, !city.isEmpty { return city }
     return nil
+  }
+
+  /// What the idle search field reads to VoiceOver: the summary in one line.
+  var originFieldLabel: String {
+    guard originAddress != nil else { return originLabel }
+    return [originTitle, originContext].compactMap { $0 }.joined(separator: ", ")
   }
 }
