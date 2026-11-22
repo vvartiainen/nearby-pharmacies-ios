@@ -163,6 +163,12 @@ Enabling:
   needs review again. Hooks are on by default; `[features] hooks = false` disables
   them.
 
+## Commits
+
+Keep each commit focused on one change and write a short, imperative Conventional Commit subject
+such as `docs: add agent skills`. Use `type(scope): summary` when naming the affected area adds
+clarity, as in `test(locale): cover English fallback`.
+
 ## Localization
 
 - Add every user-facing string to `NearbyPharmacies/Localizable.xcstrings` with both
