@@ -68,6 +68,59 @@ struct AppLocalization: Sendable {
   var mapLabel: String { text("Map of pharmacies") }
   var mapAttribution: String { text("© OpenStreetMap contributors") }
 
+  // Origin search, location and map picking.
+  var searchLabel: String { text("City or street address") }
+  var searchButton: String { text("Search") }
+  var searchPending: String { text("Searching…") }
+  var searchPrivacy: String {
+    text(
+      "Search text is sent to OpenStreetMap’s Nominatim service. Enter a public place or address.")
+  }
+  var searchAttribution: String { text("Search © OpenStreetMap contributors") }
+  var chooseMatch: String { text("Choose a match") }
+  var localMatches: String { text("Matches from the bundled place index.") }
+  var searchUnavailable: String {
+    text(
+      "Address search is unavailable right now. City search and choosing a point on the map still work."
+    )
+  }
+  var useMyLocation: String { text("Use my location") }
+  var locationPromptTitle: String { text("Show pharmacies nearest to you?") }
+  var locationPromptBody: String {
+    text("Your location is used only on this device to calculate distances.")
+  }
+  var locationPromptAccept: String { text("Use location") }
+  var locationPromptDismiss: String { text("Not now") }
+  var locationPending: String { text("Finding your location…") }
+  var yourLocation: String { text("Your location") }
+  var droppedPin: String { text("Dropped pin") }
+  var searchFromHere: String { text("Search from here") }
+  var mapPickHint: String { text("Touch and hold the map to choose a starting point.") }
+  var outsideFinland: String {
+    text("This starting point is outside Finland. Only pharmacies in Finland are shown.")
+  }
+  var returnToHelsinki: String { text("Return to Helsinki") }
+  var borderNotice: String { text("Pharmacies across the border may be nearer but are not shown.") }
+
+  /// "No places in Finland match “{query}”…"
+  func noMatches(_ query: String) -> String {
+    text(
+      "No places in Finland match “\(query)”. Check the spelling or choose a point on the map.")
+  }
+
+  func locationFailure(_ failure: LocationFailure) -> String {
+    switch failure {
+    case .denied:
+      text(
+        "Location permission was denied. Search for a city or address, or choose a point on the map."
+      )
+    case .timeout:
+      text("Finding your location took too long. Try again or choose a starting point.")
+    case .unavailable:
+      text("Location is unavailable. Search for a city or address, or choose a point on the map.")
+    }
+  }
+
   /// Short weekday names, Monday first: "Mon" … "Sun" or "ma" … "su".
   var weekdays: [String] {
     text("Mon Tue Wed Thu Fri Sat Sun").split(separator: " ").map(String.init)

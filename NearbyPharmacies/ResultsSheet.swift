@@ -1,10 +1,18 @@
 import SwiftUI
 
-/// The content of the results sheet: the origin header and the list, or the details of the
-/// selection with "Back to results". VoiceOver reads the origin, then the results.
+/// The content of the results sheet: the origin search and summary, notices and the list, or the
+/// details of the selection with "Back to results". VoiceOver reads the origin, the notices, then
+/// the results.
 struct ResultsSheet: View {
-  let finder: PharmacyFinder
+  let controller: OriginController
+  /// Reports whether the search field has focus, so the sheet can make room for the keyboard.
+  var onSearchFocusChange: (Bool) -> Void = { _ in }
   @AccessibilityFocusState private var focus: FocusTarget?
+  @FocusState private var searchFocused: Bool
+  @State private var draft = ""
+  @State private var showsLocationOffer = false
+
+  private var finder: PharmacyFinder { controller.finder }
 
   private enum FocusTarget: Hashable {
     case detailsName
@@ -21,6 +29,33 @@ struct ResultsSheet: View {
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     .background(Color.surfaceDefault)
+    .onChange(of: searchFocused) { onSearchFocusChange(searchFocused) }
+    .onChange(of: controller.isLocating) {
+      if controller.isLocating {
+        AccessibilityNotification.Announcement(finder.localization.locationPending).post()
+      }
+    }
+    // The offer follows the first results, and the system prompt only follows the offer.
+    .task {
+      try? await Task.sleep(for: .seconds(1))
+      if controller.offersLocation { showsLocationOffer = true }
+    }
+    .alert(
+      finder.localization.locationPromptTitle,
+      isPresented: Binding(
+        get: { showsLocationOffer },
+        set: { showsLocationOffer = $0 }
+      )
+    ) {
+      Button(finder.localization.locationPromptAccept) {
+        controller.requestLocation()
+      }
+      Button(finder.localization.locationPromptDismiss, role: .cancel) {
+        controller.dismissLocationOffer()
+      }
+    } message: {
+      Text(finder.localization.locationPromptBody)
+    }
   }
 
   // MARK: - List
@@ -31,6 +66,8 @@ struct ResultsSheet: View {
       ScrollView {
         VStack(alignment: .leading, spacing: Spacing.lg) {
           header
+          CoverageNotice(controller: controller)
+          resultsHeading
           LazyVStack(spacing: Spacing.sm) {
             ForEach(finder.results) { result in
               ResultRow(result: result, isSelected: result.id == finder.selectedID) {
@@ -57,23 +94,19 @@ struct ResultsSheet: View {
         proxy.scrollTo(id)
         focus = .row(id)
       }
+      .onChange(of: finder.originChangeCount) {
+        // New results start from the top, below the origin.
+        withAnimation { proxy.scrollTo(Self.topID, anchor: .top) }
+      }
     }
   }
+
+  private static let topID = "sheet.top"
 
   private var header: some View {
     let localization = finder.localization
     return VStack(alignment: .leading, spacing: Spacing.md) {
-      VStack(alignment: .leading, spacing: Spacing.xs) {
-        Text(localization.resultsTitle)
-          .font(.title3.weight(.semibold))
-          .foregroundStyle(Color.textPrimary)
-          .accessibilityAddTraits(.isHeader)
-          .accessibilityIdentifier("results.title")
-        Text(localization.scopeAndCount(finder.datasetCount))
-          .font(.footnote)
-          .foregroundStyle(Color.textSecondary)
-          .accessibilityIdentifier("results.scope")
-      }
+      OriginSearch(controller: controller, draft: $draft, focus: $searchFocused)
       HStack(alignment: .firstTextBaseline, spacing: Spacing.sm) {
         Circle()
           .fill(Color.originMarker)
@@ -83,18 +116,41 @@ struct ResultsSheet: View {
           Text(localization.originCaption)
             .font(.footnote)
             .foregroundStyle(Color.textSecondary)
-          Text(finder.originLabel)
+          Text(finder.originTitle)
             .font(.body.weight(.semibold))
             .foregroundStyle(Color.textPrimary)
             .accessibilityIdentifier("origin.label")
+          if let context = finder.originContext {
+            Text(context)
+              .font(.footnote)
+              .foregroundStyle(Color.textSecondary)
+          }
         }
       }
       .accessibilityElement(children: .combine)
       .accessibilityIdentifier("origin")
     }
+    .id(Self.topID)
     .fixedSize(horizontal: false, vertical: true)
     // Like a navigation bar, the header stops growing at the largest standard size so the medium
     // detent still shows a full result at accessibility sizes. Rows and details scale fully.
+    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+  }
+
+  private var resultsHeading: some View {
+    let localization = finder.localization
+    return VStack(alignment: .leading, spacing: Spacing.xs) {
+      Text(localization.resultsTitle)
+        .font(.title3.weight(.semibold))
+        .foregroundStyle(Color.textPrimary)
+        .accessibilityAddTraits(.isHeader)
+        .accessibilityIdentifier("results.title")
+      Text(localization.scopeAndCount(finder.datasetCount))
+        .font(.footnote)
+        .foregroundStyle(Color.textSecondary)
+        .accessibilityIdentifier("results.scope")
+    }
+    .fixedSize(horizontal: false, vertical: true)
     .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
   }
 

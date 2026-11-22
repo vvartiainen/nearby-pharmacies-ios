@@ -18,6 +18,23 @@
         }
       }
     },
+    "Address search is unavailable right now. City search and choosing a point on the map still work." : {
+      "comment" : "Shown when the online geocoder fails and no bundled place matches.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Address search is unavailable right now. City search and choosing a point on the map still work."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Osoitehaku ei ole juuri nyt käytettävissä. Kaupunkihaku ja kartalta valinta toimivat."
+          }
+        }
+      }
+    },
     "Address unavailable" : {
       "comment" : "Shown in pharmacy details when the data has no address.",
       "localizations" : {
@@ -52,6 +69,40 @@
         }
       }
     },
+    "Choose a match" : {
+      "comment" : "Heading of the search matches.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a match"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Valitse osuma"
+          }
+        }
+      }
+    },
+    "City or street address" : {
+      "comment" : "Label and placeholder of the origin search field.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "City or street address"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kaupunki tai katuosoite"
+          }
+        }
+      }
+    },
     "Closed" : {
       "comment" : "Opening hours for a day when the pharmacy is closed.",
       "localizations" : {
@@ -65,6 +116,57 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Suljettu"
+          }
+        }
+      }
+    },
+    "Dropped pin" : {
+      "comment" : "Starting point label for a point chosen on the map.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dropped pin"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kartalta valittu kohta"
+          }
+        }
+      }
+    },
+    "Finding your location took too long. Try again or choose a starting point." : {
+      "comment" : "Shown when the location request times out.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finding your location took too long. Try again or choose a starting point."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sijainnin haku kesti liian kauan. Yritä uudelleen tai valitse lähtöpiste."
+          }
+        }
+      }
+    },
+    "Finding your location…" : {
+      "comment" : "Announced while the device location is requested.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finding your location…"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sijaintia etsitään…"
           }
         }
       }
@@ -103,6 +205,40 @@
         }
       }
     },
+    "Location is unavailable. Search for a city or address, or choose a point on the map." : {
+      "comment" : "Shown when the device location cannot be determined.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Location is unavailable. Search for a city or address, or choose a point on the map."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sijainti ei ole käytettävissä. Hae kaupunkia tai osoitetta tai valitse kohta kartalta."
+          }
+        }
+      }
+    },
+    "Location permission was denied. Search for a city or address, or choose a point on the map." : {
+      "comment" : "Shown when location permission is denied.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Location permission was denied. Search for a city or address, or choose a point on the map."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sijaintilupaa ei myönnetty. Hae kaupunkia tai osoitetta tai valitse kohta kartalta."
+          }
+        }
+      }
+    },
     "Map of pharmacies" : {
       "comment" : "Accessibility label of the map.",
       "localizations" : {
@@ -133,6 +269,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Kartoitetut apteekit Suomessa · %@"
+          }
+        }
+      }
+    },
+    "Matches from the bundled place index." : {
+      "comment" : "Note above matches found offline in the app's place names.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Matches from the bundled place index."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Osumat sovelluksen paikannimihakemistosta."
           }
         }
       }
@@ -171,6 +324,40 @@
         }
       }
     },
+    "No places in Finland match “%@”. Check the spelling or choose a point on the map." : {
+      "comment" : "Shown when a search finds nothing. The argument is the submitted text.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No places in Finland match “%@”. Check the spelling or choose a point on the map."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hakusanalla ”%@” ei löytynyt paikkoja Suomesta. Tarkista kirjoitusasu tai valitse kohta kartalta."
+          }
+        }
+      }
+    },
+    "Not now" : {
+      "comment" : "Dismisses the location offer.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not now"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ei nyt"
+          }
+        }
+      }
+    },
     "Opening hours" : {
       "comment" : "Heading of the opening hours in pharmacy details.",
       "localizations" : {
@@ -184,6 +371,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Aukioloajat"
+          }
+        }
+      }
+    },
+    "Pharmacies across the border may be nearer but are not shown." : {
+      "comment" : "Notice for a starting point within about 5 km of a land border.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pharmacies across the border may be nearer but are not shown."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rajan takana voi olla lähempiä apteekkeja, joita ei näytetä."
           }
         }
       }
@@ -205,6 +409,125 @@
         }
       }
     },
+    "Return to Helsinki" : {
+      "comment" : "Button that restores the default starting point.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Return to Helsinki"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Palaa Helsinkiin"
+          }
+        }
+      }
+    },
+    "Search" : {
+      "comment" : "Button that submits the origin search.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hae"
+          }
+        }
+      }
+    },
+    "Search from here" : {
+      "comment" : "Button over the map that uses the map centre as the starting point.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search from here"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hae tästä kohdasta"
+          }
+        }
+      }
+    },
+    "Search text is sent to OpenStreetMap’s Nominatim service. Enter a public place or address." : {
+      "comment" : "Privacy note under the search field.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search text is sent to OpenStreetMap’s Nominatim service. Enter a public place or address."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hakuteksti lähetetään OpenStreetMapin Nominatim-palveluun. Syötä julkinen paikka tai osoite."
+          }
+        }
+      }
+    },
+    "Search © OpenStreetMap contributors" : {
+      "comment" : "Attribution under online search matches.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search © OpenStreetMap contributors"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Haku © OpenStreetMapin tekijät"
+          }
+        }
+      }
+    },
+    "Searching…" : {
+      "comment" : "The search button while a search runs.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Searching…"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Haetaan…"
+          }
+        }
+      }
+    },
+    "Show pharmacies nearest to you?" : {
+      "comment" : "Title of the location offer after the first results.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show pharmacies nearest to you?"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Näytetäänkö sinua lähimmät apteekit?"
+          }
+        }
+      }
+    },
     "Starting point" : {
       "comment" : "Caption above the active starting point in the results sheet.",
       "localizations" : {
@@ -222,6 +545,40 @@
         }
       }
     },
+    "This starting point is outside Finland. Only pharmacies in Finland are shown." : {
+      "comment" : "Notice for a starting point outside Finland.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This starting point is outside Finland. Only pharmacies in Finland are shown."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lähtöpiste on Suomen ulkopuolella. Näytetään vain Suomen apteekit."
+          }
+        }
+      }
+    },
+    "Touch and hold the map to choose a starting point." : {
+      "comment" : "VoiceOver hint of the map.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Touch and hold the map to choose a starting point."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Valitse lähtöpiste painamalla karttaa pitkään."
+          }
+        }
+      }
+    },
     "Unnamed pharmacy" : {
       "comment" : "Name shown for a pharmacy without a name in the data.",
       "localizations" : {
@@ -235,6 +592,74 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nimetön apteekki"
+          }
+        }
+      }
+    },
+    "Use location" : {
+      "comment" : "Accepts the location offer.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use location"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Käytä sijaintia"
+          }
+        }
+      }
+    },
+    "Use my location" : {
+      "comment" : "Button that uses the device location as the starting point.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use my location"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Käytä sijaintiani"
+          }
+        }
+      }
+    },
+    "Your location" : {
+      "comment" : "Starting point label for the device location.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your location"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oma sijainti"
+          }
+        }
+      }
+    },
+    "Your location is used only on this device to calculate distances." : {
+      "comment" : "Body of the location offer.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your location is used only on this device to calculate distances."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sijaintiasi käytetään vain tällä laitteella etäisyyksien laskemiseen."
           }
         }
       }

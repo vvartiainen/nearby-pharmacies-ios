@@ -7,19 +7,41 @@ sheet. It ranks the bundled snapshot from the labeled default origin, Helsinki C
 Railway Station, and shows the 20 nearest. The origin marker, pins, rows and details stay in
 sync: selecting a row or a pin selects both, draws a dashed line from the origin and shows
 the name, distance, address and opening hours (or their fallbacks) in the sheet, which keeps
-its detent. There is no location, search or map picking yet.
+its detent. The starting point can also come from a submitted city or address search
+(public Nominatim, with the bundled Finnish and Swedish place names as fallback), the device
+location (asked for only after the Helsinki results show) or a point chosen on the map, with
+outside-Finland and land-border notices.
+
+## Origin search and location
+
+- Search sends only the submitted text, the interface language and the `fi` country filter
+  to the geocoder in `NearbyPharmacies/Resources/geocoder.json` (a copy of the web app's
+  `public/geocoder.json`). There is no autocomplete and no retry; `NominatimGeocoder` keeps at
+  most one request in flight, at most one a second, and a session cache. Device coordinates
+  never leave the device.
+- `NominatimGeocoder.contactURL` is empty until the project has a public URL. Set it then, so
+  the User-Agent identifies the app as the Nominatim usage policy asks.
+  `NominatimGeocoder.remoteConfigURL` can point at the deployed `geocoder.json` to switch the
+  provider without an app update; until then the bundled copy is used.
+- Location uses foreground Core Location (When In Use) with a 10 second timeout. The app offers
+  it once after the first results; the system prompt follows only "Use location" or "Use my
+  location". Choosing another origin while a request runs makes its fix irrelevant.
+- Touch and hold the map to choose a point. After panning or zooming, "Search from here" uses
+  the centre of the map above the sheet. VoiceOver users get the same as a map action.
+- UI tests launch with `-UITesting` and scripted answers (`ScriptedServices.swift`); the app
+  then never contacts the geocoder or Core Location.
 
 ## Layout
 
 | Path | Contents |
 | --- | --- |
 | `NearbyPharmacies.xcodeproj` | Project with the shared `NearbyPharmacies` scheme. Folders are synchronized groups, so new files under the three source folders join their target automatically. |
-| `NearbyPharmacies/` | App sources and `Localizable.xcstrings` (English and Finnish). `PharmacyFinder` holds the origin, results and selection; `ContentView` the map, sheet detents and map fitting; `PharmacyMap`, `MapMarkers`, `ResultsSheet` and `PharmacyDetails` the views; `Theme` the design tokens. |
-| `NearbyPharmacies/Resources/Data/` | Synced from the web repo, never edited by hand: `pharmacies.fi.json`, `places.fi.json`, `manifest.fi.json`, `ODbL-NOTICE.txt`. Bundled in the app. See [Pharmacy data](#pharmacy-data). |
+| `NearbyPharmacies/` | App sources and `Localizable.xcstrings` (English and Finnish). `PharmacyFinder` holds the origin, results, coverage and selection; `OriginController` search, location and map picks, with the services in `OriginServices` and test doubles in `ScriptedServices`; `OriginSearch` the search field, messages, matches and coverage notices; `ContentView` the map, sheet detents and map fitting; `PharmacyMap`, `MapMarkers`, `ResultsSheet` and `PharmacyDetails` the views; `Theme` the design tokens. |
+| `NearbyPharmacies/Resources/Data/` | Synced from the web repo, never edited by hand: `pharmacies.fi.json`, `places.fi.json`, `coverage.fi.json`, `manifest.fi.json`, `ODbL-NOTICE.txt`. Bundled in the app. See [Pharmacy data](#pharmacy-data). |
 | `NearbyPharmaciesTests/` | Swift Testing unit tests, hosted in the app. |
 | `NearbyPharmaciesTests/Fixtures/ranking-v1.json` | Shared ranking fixture, synced from the web repo. Never edit by hand. |
 | `Packages/PharmacyCore/` | Local Swift package (iOS and macOS): haversine distance, ranking, distance display rounding, the `opening_hours` interpreter (the same rules as the web app), address lines, data models and the bundle loader. The app target links it. Its tests run on the Mac. |
-| `NearbyPharmaciesUITests/` | XCUITest journeys: default results in English and Finnish, row and pin selection, missing address and hours, and the sheet at an accessibility text size. |
+| `NearbyPharmaciesUITests/` | XCUITest journeys: default results in English and Finnish, row and pin selection, missing address and hours, the sheet at an accessibility text size, and origin selection by location, search and map. |
 | `scripts/style.sh` | swift-format check and format commands. |
 | `scripts/agent-stop-hook.sh` | Agent stop hook that checks changed Swift files. |
 | `.swift-format` | swift-format configuration (the tool's defaults, pinned). |
@@ -84,7 +106,8 @@ xcrun simctl io SIMULATOR_UDID screenshot .build/screenshots/launch-fi.png
 ```
 
 The screenshot shows the map of central Helsinki with 20 pharmacy pins and the sheet at its
-smallest detent: the title, the dataset count, the starting point and the nearest result.
+smallest detent: the search field, the starting point, the title, the dataset count and the
+nearest result.
 
 | Language | Title | Count | Starting point | Nearest result |
 | --- | --- | --- | --- | --- |
@@ -106,13 +129,16 @@ the bundled data. They need no simulator:
 swift test --package-path Packages/PharmacyCore
 ```
 
-Expected last line: `Test run with 33 tests in 7 suites passed`. They check every origin of
+Expected last line: `Test run with 50 tests in 11 suites passed`. They check every origin of
 the shared fixture (order, distances within its tolerance, English and Finnish labels), all
 19 display-rounding cases, the zero distance, the exact three-way tie, two distances with the
 same label, decoding of records without name, address or hours, the bundled snapshot and place
 index against the manifest's counts, and the SHA-256 of each data file against the
 manifest. They also run the web app's `opening_hours` cases and check that the snapshot
 interprets the same 613 of 623 values, plus address lines, name trimming and pin points.
+The origin tests cover the geocoder configuration and request parameters, Nominatim and Photon
+answers, the bundled place fallback (Swedish names, typos, no match for addresses) and the
+coverage notices for Tornio, Haparanda, Tallinn, Helsinki, Hanko, Mariehamn and Tampere.
 Fixture labels are compared after its `labelComparison` rule (U+00A0 and U+202F become
 spaces). A separate test pins the exact characters, which match the web app's `Intl`
 output: Finnish groups with U+00A0 ("1 234 km"), and both languages put U+0020 before the
@@ -129,18 +155,25 @@ first.
 
 Unit tests (Swift Testing: language selection, English fallback, the locale passed to the
 distance formatter, the string catalog against every fixture label and the journey strings,
-the data files in the app bundle, the default ranking and selection in `PharmacyFinder`, and
-the map fit above the sheet):
+the data files in the app bundle, the default ranking and selection in `PharmacyFinder`, the
+map fit above the sheet, and `OriginController` with gated fakes: the location offer, a granted
+Tampere fix (Tullintorin apteekki first), denial and timeout, late fixes and geocoder replies
+after a map pick, address matches, the place fallback, no matches, an unavailable service and
+the coverage notices):
 
 ```sh
 rm -rf .build/results/unit.xcresult && xcodebuild test -project NearbyPharmacies.xcodeproj -scheme NearbyPharmacies -destination 'platform=iOS Simulator,id=SIMULATOR_UDID' -derivedDataPath .build/DerivedData -resultBundlePath .build/results/unit.xcresult -only-testing:NearbyPharmaciesTests
 ```
 
-UI tests (XCUITest, about a minute, each attaching screenshots): default results in English
-and Finnish; row selection with details, hours and the kept detent; pin selection with
+UI tests (XCUITest, about three minutes, each attaching screenshots): default results in
+English and Finnish; row selection with details, hours and the kept detent; pin selection with
 "Address unavailable" and "Hours unavailable" in Finnish; return to the list with the
-selection kept; and the sheet at Accessibility XXXL text, which opens at the medium detent
-(large on screens shorter than 800 points, such as iPhone SE) with a full result visible:
+selection kept; the sheet at Accessibility XXXL text, which opens at the medium detent
+(large on screens shorter than 800 points, such as iPhone SE) with a full result visible; and
+origin selection with scripted answers: the location offer and a granted Tampere fix, denial,
+a timeout in Finnish, five "Kauppakatu 1" matches, an empty reply in Finnish, the bundled
+"Tammerfor" fallback, a map pick that wins over a late reply, "Search from here" that wins over
+a late fix, and Haparanda outside Finland with "Return to Helsinki":
 
 ```sh
 rm -rf .build/results/ui.xcresult && xcodebuild test -project NearbyPharmacies.xcodeproj -scheme NearbyPharmacies -destination 'platform=iOS Simulator,id=SIMULATOR_UDID' -derivedDataPath .build/DerivedData -resultBundlePath .build/results/ui.xcresult -only-testing:NearbyPharmaciesUITests
@@ -169,14 +202,14 @@ pnpm run data:sync-ios -- --ios-repo ../nearby-pharmacies-ios
 pnpm run data:verify -- --ios-repo ../nearby-pharmacies-ios
 ```
 
-The sync prints `copied …` for each file and `data:verify: 5 file(s) match`. Verify alone
+The sync prints `copied …` for each file and `data:verify: 6 file(s) match`. Verify alone
 exits 1 with `missing:` or `differs:` lines when a copy is stale. Commit both repositories
 together.
 
 Where the copies go and who reads them:
 
 - `NearbyPharmacies/Resources/Data/` is inside the app's synchronized group, so Xcode copies
-  the four files into the top level of `NearbyPharmacies.app`. The app reads them with
+  the five files into the top level of `NearbyPharmacies.app`. The app reads them with
   `PharmacyDataLoader(bundle: .main)`.
 - `NearbyPharmaciesTests/Fixtures/ranking-v1.json` lands in the unit-test bundle the same
   way.

@@ -68,7 +68,7 @@ final class SelectionTests: XCTestCase {
     let app = JourneyApp.launch(language: "en", locale: "en_GB")
     let row = app.buttons[JourneyApp.row(JourneyApp.steissin)]
     XCTAssertTrue(row.waitForExistence(timeout: 15))
-    let sheetTop = app.staticTexts["results.title"].frame.minY
+    let sheetTop = app.textFields["search.field"].frame.minY
 
     row.tap()
 
@@ -140,7 +140,7 @@ final class SelectionTests: XCTestCase {
     // Choose Kaartin Apteekki again from its row in the expanded list.
     app.buttons["details.back"].tap()
     XCTAssertTrue(app.staticTexts["results.title"].waitForExistence(timeout: 5))
-    JourneyApp.expandSheet(app, topElement: app.staticTexts["results.title"])
+    JourneyApp.expandSheet(app, topElement: app.textFields["search.field"])
     let kaartiRow = app.buttons[JourneyApp.row(JourneyApp.kaarti)]
     XCTAssertTrue(kaartiRow.waitForExistence(timeout: 5))
     XCTAssertFalse(kaartiRow.isSelected)
@@ -178,7 +178,7 @@ final class LargeTextTests: XCTestCase {
     let window = app.windows.firstMatch.frame
     XCTAssertLessThanOrEqual(row.frame.maxY, window.maxY, "The whole nearest row is visible")
     // Medium (large on short screens such as iPhone SE), never the peek.
-    XCTAssertLessThan(app.staticTexts["results.title"].frame.minY, window.height * 0.6)
+    XCTAssertLessThan(app.textFields["search.field"].frame.minY, window.height * 0.6)
     attachScreenshot(app, name: "Accessibility XXXL list (fi)")
 
     row.tap()
@@ -219,17 +219,62 @@ enum JourneyApp {
   static func row(_ id: String) -> String { "row.\(id)" }
   static func pin(_ id: String) -> String { "pin.\(id)" }
 
+  /// Launches with scripted services: `environment` sets the geocoder and location answers (see
+  /// `ScriptedServices` in the app). Without it, search and location fail and nothing is offered.
   @MainActor
-  static func launch(language: String, locale: String, contentSize: String? = nil)
-    -> XCUIApplication
-  {
+  static func launch(
+    language: String, locale: String, contentSize: String? = nil,
+    environment: [String: String] = [:]
+  ) -> XCUIApplication {
     let app = XCUIApplication()
-    app.launchArguments = ["-AppleLanguages", "(\(language))", "-AppleLocale", locale]
+    app.launchArguments = [
+      "-UITesting", "-AppleLanguages", "(\(language))", "-AppleLocale", locale,
+    ]
     if let contentSize {
       app.launchArguments += ["-UIPreferredContentSizeCategoryName", contentSize]
     }
+    app.launchEnvironment = environment
     app.launch()
     return app
+  }
+
+  /// Drags the sheet down by the starting point summary until `topElement` is in the lower half
+  /// of the screen. The summary is plain text, and the list is scrolled to the top, so the drag
+  /// resizes the sheet. The grabber can sit under the status bar on short screens.
+  @MainActor
+  static func collapseSheet(
+    _ app: XCUIApplication, topElement: XCUIElement, file: StaticString = #filePath,
+    line: UInt = #line
+  ) {
+    let window = app.windows.firstMatch
+    let bottom = window.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.97))
+    origin(app).coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+      .press(forDuration: 0.1, thenDragTo: bottom, withVelocity: .slow, thenHoldForDuration: 0.2)
+    let collapsed = NSPredicate { _, _ in topElement.frame.minY > window.frame.height * 0.5 }
+    XCTAssertEqual(
+      XCTWaiter.wait(
+        for: [XCTNSPredicateExpectation(predicate: collapsed, object: nil)], timeout: 5),
+      .completed, "The sheet leaves the upper half of the map uncovered", file: file, line: line)
+  }
+
+  /// A point on the map well above the sheet at its smallest detent.
+  @MainActor
+  static func mapPoint(_ app: XCUIApplication, x: CGFloat = 0.5, y: CGFloat = 0.3)
+    -> XCUICoordinate
+  {
+    app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: x, dy: y))
+  }
+
+  /// The first row of the results list.
+  @MainActor
+  static func firstRow(_ app: XCUIApplication) -> XCUIElement {
+    app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'row.'")).firstMatch
+  }
+
+  /// The combined "Starting point" summary in the sheet.
+  @MainActor
+  static func origin(_ app: XCUIApplication) -> XCUIElement {
+    app.descendants(matching: .any)["origin"]
   }
 }
 

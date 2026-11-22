@@ -4,7 +4,8 @@ import UIKit
 
 /// The full-screen map with the results sheet over it.
 struct ContentView: View {
-  let finder: PharmacyFinder
+  let controller: OriginController
+  private var finder: PharmacyFinder { controller.finder }
 
   @State private var position: MapCameraPosition = .region(
     MKCoordinateRegion(
@@ -18,14 +19,16 @@ struct ContentView: View {
   @State private var sheetTop: CGFloat?
   @State private var didInitialFit = false
   @State private var didChooseInitialDetent = false
+  /// The detent before the search field took focus, restored when the search is done.
+  @State private var detentBeforeSearch: PresentationDetent?
   private let accessibilityTextSize: Bool
 
   /// Below this screen height the medium detent cannot show the header and a full result at
   /// accessibility text sizes, for example on iPhone SE.
   private static let shortScreenHeight: CGFloat = 800
 
-  init(finder: PharmacyFinder) {
-    self.finder = finder
+  init(controller: OriginController) {
+    self.controller = controller
     // At accessibility text sizes the sheet opens at the medium detent so at least one full row
     // shows, or at the large detent on short screens. Otherwise it opens at the peek detent: the
     // header and the nearest result.
@@ -37,23 +40,26 @@ struct ContentView: View {
 
   var body: some View {
     GeometryReader { proxy in
-      PharmacyMap(finder: finder, position: $position)
-        // Keeps MapKit's legal notice and the scale above the sheet. The padding applies inside
-        // the full-screen frame, so it has to come before `ignoresSafeArea`.
-        .safeAreaPadding(.bottom, mapBottomInset)
-        .ignoresSafeArea()
-        .onChange(of: proxy.size, initial: true) {
-          let insets = proxy.safeAreaInsets
-          safeAreaTop = insets.top
-          mapSize = CGSize(
-            width: proxy.size.width + insets.leading + insets.trailing,
-            height: proxy.size.height + insets.top + insets.bottom)
-          chooseInitialDetent()
-          fitInitially()
-        }
+      PharmacyMap(
+        finder: finder, position: $position, pickPoint: pickPoint, topInset: safeAreaTop,
+        onPick: controller.choosePoint
+      )
+      // Keeps MapKit's legal notice and the scale above the sheet. The padding applies inside
+      // the full-screen frame, so it has to come before `ignoresSafeArea`.
+      .safeAreaPadding(.bottom, mapBottomInset)
+      .ignoresSafeArea()
+      .onChange(of: proxy.size, initial: true) {
+        let insets = proxy.safeAreaInsets
+        safeAreaTop = insets.top
+        mapSize = CGSize(
+          width: proxy.size.width + insets.leading + insets.trailing,
+          height: proxy.size.height + insets.top + insets.bottom)
+        chooseInitialDetent()
+        fitInitially()
+      }
     }
     .sheet(isPresented: .constant(true)) {
-      ResultsSheet(finder: finder)
+      ResultsSheet(controller: controller, onSearchFocusChange: searchFocusChanged)
         .onGeometryChange(for: CGFloat.self) {
           $0.frame(in: .global).minY
         } action: {
@@ -69,6 +75,34 @@ struct ContentView: View {
         .interactiveDismissDisabled()
     }
     .onChange(of: finder.selectionCount) { fitSelection() }
+    .onChange(of: finder.originChangeCount) {
+      restoreDetentAfterSearch()
+      if finder.fitsMapToOrigin { fitOriginAndResults(animated: true) }
+    }
+  }
+
+  /// Like Maps, the sheet opens fully while the search field has focus, so the keyboard does not
+  /// cover the matches. It returns to its detent when a match is chosen or the search is left.
+  private func searchFocusChanged(_ focused: Bool) {
+    if focused {
+      if detentBeforeSearch == nil, detent != .large { detentBeforeSearch = detent }
+      detent = .large
+    } else if controller.search == .idle {
+      restoreDetentAfterSearch()
+    }
+  }
+
+  private func restoreDetentAfterSearch() {
+    guard let previous = detentBeforeSearch else { return }
+    detentBeforeSearch = nil
+    detent = previous
+  }
+
+  /// The centre of the map area above the sheet and below the status bar.
+  private var pickPoint: CGPoint {
+    CGPoint(
+      x: mapSize.width / 2,
+      y: (safeAreaTop + max(safeAreaTop + 1, mapSize.height - mapBottomInset)) / 2)
   }
 
   private func chooseInitialDetent() {
@@ -83,10 +117,14 @@ struct ContentView: View {
   private func fitInitially() {
     guard !didInitialFit, let sheetTop, sheetTop > 0, mapSize.height > 0 else { return }
     didInitialFit = true
+    fitOriginAndResults(animated: false)
+  }
+
+  private func fitOriginAndResults(animated: Bool) {
     let points =
       [finder.origin.coordinate.location]
       + finder.results.map { $0.pharmacy.pinCoordinate.location }
-    fit(points, animated: false)
+    fit(points, animated: animated)
   }
 
   /// Fits the origin and the selected pin above the sheet, which keeps its detent.
@@ -134,21 +172,30 @@ private struct PeekDetent: CustomPresentationDetent {
   static func height(in context: Context) -> CGFloat? {
     let category = UIContentSizeCategory(context.dynamicTypeSize)
     let traits = UITraitCollection(preferredContentSizeCategory: category)
-    // Top padding and spacing do not scale; the text lines do.
-    let fixed: CGFloat = 24 + 12 + 16 + 24 + 8
+    // Top padding, the search field and spacing do not scale; the text lines do.
+    let fixed: CGFloat = 24 + 44 + 12 + 12 + 16 + 24 + 8
     let text = UIFontMetrics.default.scaledValue(for: 112, compatibleWith: traits)
     return min(fixed + text, context.maxDetentValue * 0.6)
   }
 }
 
 #Preview("English") {
-  ContentView(
-    finder: PharmacyFinder(
-      localization: AppLocalization(preferredLanguages: ["en"], region: .finland)))
+  ContentView(controller: .preview(language: "en"))
 }
 
 #Preview("Finnish") {
-  ContentView(
-    finder: PharmacyFinder(
-      localization: AppLocalization(preferredLanguages: ["fi"], region: .finland)))
+  ContentView(controller: .preview(language: "fi"))
+}
+
+extension OriginController {
+  /// Bundled data with the scripted services, which never leave the device.
+  static func preview(language: String) -> OriginController {
+    OriginController(
+      finder: PharmacyFinder(
+        localization: AppLocalization(preferredLanguages: [language], region: .finland)),
+      geocoder: ScriptedGeocoder(response: nil, delay: .zero),
+      locator: ScriptedLocation(
+        result: .failure(.unavailable), delay: .zero, needsPermission: false),
+      places: [])
+  }
 }

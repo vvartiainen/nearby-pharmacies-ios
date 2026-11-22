@@ -18,10 +18,17 @@ struct PharmacyResult: Identifiable, Hashable {
   var accessibilityLabel: String { "\(name), \(straightLine)" }
 }
 
-/// The active starting point. This checkpoint has the labeled default only.
+/// The active starting point and the source of its label.
 struct Origin: Hashable {
   enum Kind: Hashable {
+    /// Helsinki Central Railway Station, before any other choice.
     case `default`
+    /// A device location fix.
+    case device
+    /// A point chosen on the map.
+    case pin
+    /// A search match: "Kauppakatu 1" in "Tampere, Finland".
+    case search(title: String, context: String)
   }
 
   let kind: Kind
@@ -30,6 +37,10 @@ struct Origin: Hashable {
   /// OSM node/25474663, Helsinki Central Railway Station, as in the ranking fixture and the web app.
   static let helsinkiCentral = Origin(
     kind: .default, coordinate: Coordinate(lat: 60.1720965, lon: 24.9412486))
+
+  static func match(_ match: PlaceMatch) -> Origin {
+    Origin(kind: .search(title: match.title, context: match.context), coordinate: match.coordinate)
+  }
 }
 
 /// The app's state: the bundled data, the origin, its nearest results and the one selection that
@@ -44,6 +55,7 @@ final class PharmacyFinder {
   /// Number of pharmacies in the bundled Finland snapshot.
   let datasetCount: Int
   private let pharmacies: [Pharmacy]
+  private let coverageGeometry: CoverageGeometry?
 
   private(set) var origin: Origin
   private(set) var results: [PharmacyResult] = []
@@ -55,10 +67,20 @@ final class PharmacyFinder {
   private(set) var showsDetails = false
   /// Increments with each selection so the map refits when the same pharmacy is chosen again.
   private(set) var selectionCount = 0
+  /// Where the origin lies relative to the bundled coverage, for the notices above the list.
+  private(set) var coverage: CoverageGeometry.Classification = .covered
+  /// Increments with each new origin. `fitsMapToOrigin` says whether the map should fit the
+  /// origin and its results: a point chosen on the map keeps the viewport.
+  private(set) var originChangeCount = 0
+  private(set) var fitsMapToOrigin = true
 
-  init(localization: AppLocalization, pharmacies: [Pharmacy], origin: Origin = .helsinkiCentral) {
+  init(
+    localization: AppLocalization, pharmacies: [Pharmacy], coverage: CoverageGeometry? = nil,
+    origin: Origin = .helsinkiCentral
+  ) {
     self.localization = localization
     self.pharmacies = pharmacies
+    self.coverageGeometry = coverage
     self.datasetCount = pharmacies.count
     self.origin = origin
     rank()
@@ -66,14 +88,28 @@ final class PharmacyFinder {
 
   /// Loads the snapshot bundled with the app.
   convenience init(localization: AppLocalization, bundle: Bundle = .main) {
+    let loader = PharmacyDataLoader(bundle: bundle)
     let snapshot: PharmacySnapshot
+    let coverage: CoverageGeometry?
     do {
-      snapshot = try PharmacyDataLoader(bundle: bundle).loadSnapshot()
+      snapshot = try loader.loadSnapshot()
+      coverage = try loader.loadCoverage()
     } catch {
-      // The snapshot ships in the app bundle and the unit tests check it, so this is a build error.
-      fatalError("The bundled pharmacy snapshot could not be read: \(error)")
+      // The data ships in the app bundle and the unit tests check it, so this is a build error.
+      fatalError("The bundled pharmacy data could not be read: \(error)")
     }
-    self.init(localization: localization, pharmacies: snapshot.pharmacies)
+    self.init(localization: localization, pharmacies: snapshot.pharmacies, coverage: coverage)
+  }
+
+  /// Ranks from a new starting point. The old selection does not belong to the new results, so
+  /// it is cleared and the sheet shows the list.
+  func setOrigin(_ origin: Origin, fitMap: Bool = true) {
+    self.origin = origin
+    selectedID = nil
+    showsDetails = false
+    fitsMapToOrigin = fitMap
+    originChangeCount += 1
+    rank()
   }
 
   var selected: PharmacyResult? {
@@ -94,6 +130,7 @@ final class PharmacyFinder {
   }
 
   private func rank() {
+    coverage = coverageGeometry?.classify(origin.coordinate) ?? .covered
     results = rankPharmacies(origin: origin.coordinate, pharmacies: pharmacies)
       .prefix(Self.resultLimit)
       .map { ranked in
@@ -107,10 +144,25 @@ final class PharmacyFinder {
       }
   }
 
-  /// The label of the active starting point.
+  /// The label of the active starting point, in one line.
   var originLabel: String {
     switch origin.kind {
     case .default: localization.defaultOrigin
+    case .device: localization.yourLocation
+    case .pin: localization.droppedPin
+    case .search(let title, let context): context.isEmpty ? title : "\(title) · \(context)"
     }
+  }
+
+  /// The first line of the origin summary: the label, or a match's place or street.
+  var originTitle: String {
+    if case .search(let title, _) = origin.kind { return title }
+    return originLabel
+  }
+
+  /// The smaller locality line under a match's title, or nil.
+  var originContext: String? {
+    if case .search(_, let context) = origin.kind, !context.isEmpty { return context }
+    return nil
   }
 }

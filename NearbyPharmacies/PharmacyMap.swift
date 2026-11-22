@@ -4,13 +4,81 @@ import SwiftUI
 
 /// The full-screen map: the origin marker, a pin per result and, for a selection, a dashed straight
 /// line from the origin to the selected pin. Pins are buttons that select their pharmacy.
+/// Touching and holding the map, or "Search from here" after panning or zooming, chooses a new
+/// starting point.
 struct PharmacyMap: View {
   let finder: PharmacyFinder
   @Binding var position: MapCameraPosition
+  /// The centre of the part of the map the sheet leaves visible, in the map's coordinates.
+  var pickPoint: CGPoint
+  /// The status bar height: "Search from here" sits below it.
+  var topInset: CGFloat
+  var onPick: (Coordinate) -> Void = { _ in }
+  /// Shown after the user pans or zooms, until a new origin is chosen or the map refits.
+  @State private var showsSearchHere = false
+  /// A touch and hold on a pin chooses the point, so the tap that ends it must not also select
+  /// the pharmacy.
+  @State private var lastPick: ContinuousClock.Instant?
 
   var body: some View {
+    MapReader { proxy in
+      map
+        .gesture(MapLongPress { point in pick(point, proxy) })
+        .onMapCameraChange(frequency: .onEnd) {
+          showsSearchHere = position.positionedByUser
+        }
+        .onChange(of: finder.originChangeCount) { showsSearchHere = false }
+        .overlay {
+          if showsSearchHere {
+            searchHere(proxy)
+          }
+        }
+        .accessibilityAction(named: finder.localization.searchFromHere) {
+          pick(pickPoint, proxy)
+        }
+        .accessibilityHint(finder.localization.mapPickHint)
+    }
+  }
+
+  private func pick(_ point: CGPoint, _ proxy: MapProxy) {
+    guard let coordinate = proxy.convert(point, from: .local) else { return }
+    showsSearchHere = false
+    lastPick = .now
+    onPick(Coordinate(lat: coordinate.latitude, lon: coordinate.longitude))
+  }
+
+  /// A target at the point "Search from here" uses, and the button below the status bar.
+  private func searchHere(_ proxy: MapProxy) -> some View {
+    ZStack {
+      Image(systemName: "plus.circle")
+        .font(.title2.weight(.light))
+        .foregroundStyle(Color.selectionLine)
+        .background(Circle().fill(.white.opacity(0.7)))
+        .position(pickPoint)
+        .accessibilityHidden(true)
+        .allowsHitTesting(false)
+      Button {
+        pick(pickPoint, proxy)
+      } label: {
+        Label(finder.localization.searchFromHere, systemImage: "scope")
+          .font(.subheadline.weight(.semibold))
+          .padding(.horizontal, Spacing.lg)
+          .frame(minHeight: minimumHitTarget)
+      }
+      .buttonStyle(.plain)
+      .foregroundStyle(Color.interactiveOnPrimary)
+      .background(Color.interactivePrimary, in: .capsule)
+      .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
+      .dynamicTypeSize(...DynamicTypeSize.accessibility1)
+      .frame(maxHeight: .infinity, alignment: .top)
+      .padding(.top, topInset + Spacing.sm)
+      .accessibilityIdentifier("map.searchHere")
+    }
+  }
+
+  private var map: some View {
     let localization = finder.localization
-    Map(position: $position) {
+    return Map(position: $position) {
       if let selected = finder.selected {
         let line = [finder.origin.coordinate, selected.pharmacy.pinCoordinate].map(\.location)
         MapPolyline(coordinates: line)
@@ -53,6 +121,7 @@ struct PharmacyMap: View {
   private func pin(for result: PharmacyResult, isSelected: Bool) -> some MapContent {
     Annotation(result.name, coordinate: result.pharmacy.pinCoordinate.location, anchor: .bottom) {
       Button {
+        if let lastPick, ContinuousClock.now - lastPick < .seconds(1) { return }
         finder.select(result.id)
       } label: {
         PharmacyPin(isSelected: isSelected)
@@ -63,6 +132,35 @@ struct PharmacyMap: View {
       .accessibilityIdentifier("pin.\(result.id)")
     }
     .annotationTitles(.hidden)
+  }
+}
+
+/// Touch and hold: reports the point once the press is recognized. It works alongside the map's
+/// own pan and zoom gestures.
+struct MapLongPress: UIGestureRecognizerRepresentable {
+  let action: (CGPoint) -> Void
+
+  func makeCoordinator(converter: CoordinateSpaceConverter) -> Coordinator { Coordinator() }
+
+  func makeUIGestureRecognizer(context: Context) -> UILongPressGestureRecognizer {
+    let recognizer = UILongPressGestureRecognizer()
+    recognizer.minimumPressDuration = 0.5
+    recognizer.delegate = context.coordinator
+    return recognizer
+  }
+
+  func handleUIGestureRecognizerAction(
+    _ recognizer: UILongPressGestureRecognizer, context: Context
+  ) {
+    guard recognizer.state == .began else { return }
+    action(context.converter.localLocation)
+  }
+
+  final class Coordinator: NSObject, UIGestureRecognizerDelegate {
+    func gestureRecognizer(
+      _ gestureRecognizer: UIGestureRecognizer,
+      shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer
+    ) -> Bool { true }
   }
 }
 
