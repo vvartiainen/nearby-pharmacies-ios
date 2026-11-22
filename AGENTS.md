@@ -52,6 +52,7 @@ outside-Finland and land-border notices.
 | `NearbyPharmaciesTests/Fixtures/ranking-v1.json` | Shared ranking fixture, synced from the web repo. Never edit by hand. |
 | `Packages/PharmacyCore/` | Local Swift package (iOS and macOS): haversine distance, ranking, distance display rounding, the `opening_hours` interpreter (the same rules as the web app), address lines, data models and the bundle loader. The app target links it. Its tests run on the Mac. |
 | `NearbyPharmaciesUITests/` | XCUITest journeys: default results in English and Finnish, row and pin selection, missing address and hours, the sheet at an accessibility text size, and origin selection by location, search and map. |
+| `Config/` | `Signing.xcconfig`, the app target's base configuration, optionally includes `Local.xcconfig` (ignored by Git) with the developer's own `DEVELOPMENT_TEAM`; `Local.xcconfig.example` shows the format. Never set the team in `project.pbxproj`. |
 | `scripts/style.sh` | swift-format check and format commands. |
 | `scripts/agent-stop-hook.sh` | Agent stop hook that checks changed Swift files. |
 | `.swift-format` | swift-format configuration (the tool's defaults, pinned). |

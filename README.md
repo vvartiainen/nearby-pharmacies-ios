@@ -43,7 +43,10 @@ Xcode 27.2. There are no remote package dependencies, accounts or API keys.
 3. To try Finnish, run with the scheme's App Language set to Finnish, or change the simulator
    language.
 
-Signing: to run on a device, set your own team in the target's Signing settings.
+Signing: simulator builds need no team. To run on a device, copy
+`Config/Local.xcconfig.example` to `Config/Local.xcconfig` (ignored by Git) and set your own
+`DEVELOPMENT_TEAM` there rather than in Xcode's Signing & Capabilities tab, which would write it
+into the project file.
 
 From the command line, with a simulator UDID from `xcrun simctl list devices available`:
 

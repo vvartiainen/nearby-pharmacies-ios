@@ -1,0 +1,6 @@
+// Signing for the app target. Simulator builds need no team.
+//
+// To run on a device, copy Local.xcconfig.example to Local.xcconfig (ignored by Git) and set your
+// own DEVELOPMENT_TEAM there. Set the team only in that file: choosing one in Xcode's Signing &
+// Capabilities tab writes it into project.pbxproj instead.
+#include? "Local.xcconfig"

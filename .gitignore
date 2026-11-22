@@ -10,3 +10,6 @@ DerivedData/
 /.claude/settings.local.json
 
 .DS_Store
+
+# Personal signing settings (see Config/Signing.xcconfig)
+/Config/Local.xcconfig

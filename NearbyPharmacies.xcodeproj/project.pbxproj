@@ -31,6 +31,7 @@
 		AA0000000000000000000011 /* NearbyPharmacies.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NearbyPharmacies.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA0000000000000000000012 /* NearbyPharmaciesTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NearbyPharmaciesTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA0000000000000000000013 /* NearbyPharmaciesUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NearbyPharmaciesUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA0000000000000000000031 /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -83,8 +84,17 @@
 				AA0000000000000000000021 /* NearbyPharmacies */,
 				AA0000000000000000000022 /* NearbyPharmaciesTests */,
 				AA0000000000000000000023 /* NearbyPharmaciesUITests */,
+				AA0000000000000000000032 /* Config */,
 				AA0000000000000000000003 /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		AA0000000000000000000032 /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				AA0000000000000000000031 /* Signing.xcconfig */,
+			);
+			path = Config;
 			sourceTree = "<group>";
 		};
 		AA0000000000000000000003 /* Products */ = {
@@ -332,6 +342,7 @@
 		};
 		AA0000000000000000000421 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = AA0000000000000000000031 /* Signing.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -357,6 +368,7 @@
 		};
 		AA0000000000000000000422 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = AA0000000000000000000031 /* Signing.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
