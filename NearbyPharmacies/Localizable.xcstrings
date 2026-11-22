@@ -1,0 +1,57 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "%@ straight line" : {
+      "comment" : "A distance measured in a straight line, for example \"0.4 km straight line\". The argument is a formatted distance.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ straight line"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ linnuntietä"
+          }
+        }
+      }
+    },
+    "Illustrative example distance" : {
+      "comment" : "Caption explaining that the distance shown is a sample, not a real result.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Illustrative example distance"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Havainnollistava esimerkkietäisyys"
+          }
+        }
+      }
+    },
+    "Nearest pharmacy" : {
+      "comment" : "Main screen heading.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nearest pharmacy"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lähin apteekki"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

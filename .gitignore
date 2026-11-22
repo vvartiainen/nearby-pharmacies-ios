@@ -1,0 +1,12 @@
+# Build output from the documented commands
+/.build/
+
+# Xcode user state
+xcuserdata/
+*.xcuserstate
+DerivedData/
+
+# Local agent settings
+/.claude/settings.local.json
+
+.DS_Store
