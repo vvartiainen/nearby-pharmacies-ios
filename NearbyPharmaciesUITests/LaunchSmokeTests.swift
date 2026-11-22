@@ -87,6 +87,14 @@ final class SelectionTests: XCTestCase {
     let pin = app.buttons[JourneyApp.pin(JourneyApp.steissin)]
     XCTAssertTrue(pin.isSelected)
     XCTAssertEqual(normalizingSpaces(pin.label), "Steissin Apteekki, 50 m straight line")
+    // The map centres the origin and the selected pin in the part above the sheet.
+    sleep(1)
+    let origin = app.descendants(matching: .any)["map.origin"].frame
+    let visibleTop = app.windows.firstMatch.frame.minY + 60
+    let visibleMid = (visibleTop + sheetTop) / 2
+    XCTAssertEqual((origin.midY + pin.frame.maxY) / 2, visibleMid, accuracy: 60)
+    XCTAssertEqual(
+      (origin.midX + pin.frame.midX) / 2, app.windows.firstMatch.frame.midX, accuracy: 40)
     attachScreenshot(app, name: "Row selected, peek (en)")
 
     // Expanded, the details show the opening hours, Monday first.

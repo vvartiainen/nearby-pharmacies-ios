@@ -149,10 +149,15 @@ struct ContentView: View {
   }
 
   private func fit(_ points: [CLLocationCoordinate2D], animated: Bool) {
-    // Room for a selected pin above its point and half a pin at the sides.
-    let insets = EdgeInsets(
-      top: safeAreaTop + 64, leading: 40, bottom: mapBottomInset + 24, trailing: 40)
-    guard let rect = MapFit.rect(fitting: points, viewSize: mapSize, insets: insets) else { return }
+    // MapKit frames camera positions inside the map's safe area, which the bottom padding already
+    // shortens by the sheet. So the fit uses that area. The top inset clears the status bar, the
+    // map buttons and a selected pin above its point; the others keep the points away from the
+    // edges, so both ends of a selection sit well inside the map.
+    let framedSize = CGSize(width: mapSize.width, height: mapSize.height - mapBottomInset)
+    let insets = EdgeInsets(top: safeAreaTop + 112, leading: 56, bottom: 40, trailing: 56)
+    guard let rect = MapFit.rect(fitting: points, viewSize: framedSize, insets: insets) else {
+      return
+    }
     if animated {
       withAnimation(.easeInOut(duration: 0.35)) { position = .rect(rect) }
     } else {

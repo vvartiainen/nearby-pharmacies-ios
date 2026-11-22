@@ -28,6 +28,9 @@ outside-Finland and land-border notices.
   location". Choosing another origin while a request runs makes its fix irrelevant.
 - Touch and hold the map to choose a point. After panning or zooming, "Search from here" uses
   the centre of the map above the sheet. VoiceOver users get the same as a map action.
+- Map fits (the first results, a new origin, a selection) frame the points inside the map's
+  safe area, which the sheet already shortens through `safeAreaPadding`, so the sheet height is
+  not subtracted twice.
 - UI tests launch with `-UITesting` and scripted answers (`ScriptedServices.swift`); the app
   then never contacts the geocoder or Core Location.
 
@@ -166,7 +169,8 @@ rm -rf .build/results/unit.xcresult && xcodebuild test -project NearbyPharmacies
 ```
 
 UI tests (XCUITest, about three minutes, each attaching screenshots): default results in
-English and Finnish; row selection with details, hours and the kept detent; pin selection with
+English and Finnish; row selection with details, hours, the kept detent and the origin
+and pin centred above the sheet; pin selection with
 "Address unavailable" and "Hours unavailable" in Finnish; return to the list with the
 selection kept; the sheet at Accessibility XXXL text, which opens at the medium detent
 (large on screens shorter than 800 points, such as iPhone SE) with a full result visible; and
