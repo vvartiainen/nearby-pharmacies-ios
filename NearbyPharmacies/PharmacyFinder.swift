@@ -12,10 +12,14 @@ struct PharmacyResult: Identifiable, Hashable {
   let distance: String
   /// The labeled distance, for example "300 m straight line".
   let straightLine: String
+  /// The colour of the row's distance.
+  let band: DistanceFormatting.Band
 
   var id: String { pharmacy.id }
-  /// "{name}, {distance} straight line", read for the row and the pin.
+  /// "{name}, {distance} straight line", read for the pin.
   var accessibilityLabel: String { "\(name), \(straightLine)" }
+  /// "{name}, {distance}", read for the row, as on web.
+  var rowAccessibilityLabel: String { "\(name), \(distance)" }
 }
 
 /// The active starting point and the source of its label.
@@ -139,7 +143,8 @@ final class PharmacyFinder {
           distanceMeters: ranked.distanceMeters,
           name: localization.name(of: ranked.pharmacy),
           distance: localization.distance(meters: ranked.distanceMeters),
-          straightLine: localization.straightLineDistance(meters: ranked.distanceMeters)
+          straightLine: localization.straightLineDistance(meters: ranked.distanceMeters),
+          band: DistanceFormatting.band(meters: ranked.distanceMeters)
         )
       }
   }

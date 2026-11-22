@@ -74,6 +74,25 @@ final class OriginJourneyTests: XCTestCase {
   }
 
   @MainActor
+  func testLocateButtonLeavesTheSheetInPlace() {
+    let app = JourneyApp.launch(
+      language: "en", locale: "en_GB", environment: ["UITEST_LOCATION": Self.tampere])
+    let field = app.textFields["search.field"]
+    let location = app.buttons["search.location"]
+    XCTAssertTrue(location.waitForExistence(timeout: 15))
+    let fieldTop = field.frame.minY
+    location.tap()
+    waitForLabel(JourneyApp.firstRow(app), "BEGINSWITH", "Tullintorin apteekki")
+    sleep(1)
+    // The list returns to the top with the space above the field kept, and no keyboard opens.
+    // "Your location" needs one line where the default needed two, which moves the centred text
+    // about 5 points. Losing the space above the field would move it about 28.
+    XCTAssertEqual(field.frame.minY, fieldTop, accuracy: 12)
+    XCTAssertFalse(field.hasFocus)
+    XCTAssertEqual(app.keyboards.count, 0)
+  }
+
+  @MainActor
   func testDeniedLocationKeepsHelsinki() {
     let app = JourneyApp.launch(
       language: "en", locale: "en_GB", environment: ["UITEST_LOCATION": "denied"])
@@ -226,7 +245,7 @@ final class OriginJourneyTests: XCTestCase {
   func testChooseOnMapWinsOverALateLocationFixInFinnish() {
     let app = JourneyApp.launch(
       language: "fi", locale: "fi_FI",
-      environment: ["UITEST_LOCATION": Self.tampere, "UITEST_LOCATION_DELAY": "8"])
+      environment: ["UITEST_LOCATION": Self.tampere, "UITEST_LOCATION_DELAY": "15"])
     let location = app.buttons["search.location"]
     XCTAssertTrue(location.waitForExistence(timeout: 15))
     location.tap()
@@ -259,7 +278,8 @@ final class OriginJourneyTests: XCTestCase {
     waitForOrigin(app, "Kartalta valittu kohta")
     XCTAssertFalse(searchHere.exists)
 
-    sleep(8)
+    // The fix arrives 15 s after the request, after the pick.
+    sleep(10)
     XCTAssertEqual(JourneyApp.originText(app), "Kartalta valittu kohta")
     XCTAssertTrue(location.isEnabled)
   }

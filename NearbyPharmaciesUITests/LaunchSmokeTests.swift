@@ -15,7 +15,7 @@ final class LaunchSmokeTests: XCTestCase {
       title: "Nearest pharmacies",
       scope: "Mapped pharmacies in Finland · 784",
       origin: "Helsinki Central Railway Station (default)",
-      firstRow: "Steissin Apteekki, 50 m straight line"
+      firstRow: "Steissin Apteekki, 50 m"
     )
     attachScreenshot(app, name: "Launch (en)")
   }
@@ -28,7 +28,7 @@ final class LaunchSmokeTests: XCTestCase {
       title: "Lähimmät apteekit",
       scope: "Kartoitetut apteekit Suomessa · 784",
       origin: "Helsingin päärautatieasema (oletus)",
-      firstRow: "Steissin Apteekki, 50 m linnuntietä"
+      firstRow: "Steissin Apteekki, 50 m"
     )
     attachScreenshot(app, name: "Launch (fi)")
   }
@@ -47,7 +47,7 @@ final class LaunchSmokeTests: XCTestCase {
 
     let first = app.buttons[JourneyApp.row(JourneyApp.steissin)]
     XCTAssertTrue(
-      first.isHittable, "The nearest row shows at the peek detent", file: file, line: line)
+      first.isHittable, "The sheet opens half way with the nearest rows", file: file, line: line)
     XCTAssertEqual(normalizingSpaces(first.label), firstRow, file: file, line: line)
     XCTAssertFalse(first.isSelected, file: file, line: line)
     XCTAssertTrue(
@@ -77,7 +77,7 @@ final class SelectionTests: XCTestCase {
     XCTAssertEqual(
       normalizingSpaces(app.staticTexts["details.distance"].label), "50 m straight line")
     XCTAssertEqual(app.staticTexts["details.address"].label, "Elielinaukio 3\n00100 Helsinki")
-    // The sheet keeps the peek detent: the details start where the list header was.
+    // The sheet keeps its detent: the details start where the list header was.
     let back = app.buttons["details.back"]
     XCTAssertEqual(back.label, "Back to results")
     XCTAssertEqual(back.frame.minY, sheetTop, accuracy: 40)
@@ -94,7 +94,7 @@ final class SelectionTests: XCTestCase {
     XCTAssertEqual((origin.midY + pin.frame.maxY) / 2, visibleMid, accuracy: 60)
     XCTAssertEqual(
       (origin.midX + pin.frame.midX) / 2, app.windows.firstMatch.frame.midX, accuracy: 40)
-    attachScreenshot(app, name: "Row selected, peek (en)")
+    attachScreenshot(app, name: "Row selected (en)")
 
     // Expanded, the details show the opening hours, Monday first.
     JourneyApp.expandSheet(app, topElement: app.buttons["details.back"])
@@ -109,6 +109,75 @@ final class SelectionTests: XCTestCase {
     XCTAssertTrue(selectedRow.waitForExistence(timeout: 5))
     XCTAssertTrue(selectedRow.isSelected, "Returning to the list keeps the selection")
     attachScreenshot(app, name: "Back to results with selection (en)")
+  }
+
+  @MainActor
+  func testClosedSheetShowsOnlyTheSearchFieldAndASelectionOpensIt() {
+    let app = JourneyApp.launch(language: "en", locale: "en_GB")
+    let field = app.textFields["search.field"]
+    XCTAssertTrue(field.waitForExistence(timeout: 15))
+    XCTAssertTrue(app.buttons[JourneyApp.row(JourneyApp.steissin)].isHittable)
+
+    JourneyApp.collapseSheet(app, topElement: field)
+    XCTAssertTrue(field.isHittable)
+    XCTAssertFalse(app.staticTexts["results.title"].isHittable, "Closed, no results show")
+    XCTAssertFalse(app.buttons[JourneyApp.row(JourneyApp.steissin)].isHittable)
+    attachScreenshot(app, name: "Closed sheet (en)")
+
+    // A pin opens the closed sheet half way, like the web drawer.
+    app.buttons[JourneyApp.pin(JourneyApp.kaarti)].tap()
+    let name = app.staticTexts["details.name"]
+    XCTAssertTrue(name.waitForExistence(timeout: 5))
+    let window = app.windows.firstMatch.frame
+    let opened = NSPredicate { _, _ in name.isHittable && name.frame.minY < window.height * 0.75 }
+    XCTAssertEqual(
+      XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: opened, object: nil)], timeout: 5),
+      .completed, "The sheet opens to show the details")
+    // The details form a block centred in the sheet, with a shared left edge.
+    let heading = app.staticTexts["details.hoursHeading"]
+    XCTAssertEqual(name.frame.minX, heading.frame.minX, accuracy: 1)
+    XCTAssertGreaterThan(name.frame.minX, 40, "Centred, not at the sheet's leading edge")
+    XCTAssertEqual(
+      app.staticTexts["details.hoursUnavailable"].frame.midX, window.midX, accuracy: 60)
+    attachScreenshot(app, name: "Selection opens the closed sheet (en)")
+  }
+
+  @MainActor
+  func testFullSheetSelectionComesHalfWayAndClosedSheetShowsOnlyTheSelectionThatOpensIt() {
+    let app = JourneyApp.launch(language: "en", locale: "en_GB")
+    let field = app.textFields["search.field"]
+    let row = app.buttons[JourneyApp.row(JourneyApp.steissin)]
+    XCTAssertTrue(row.waitForExistence(timeout: 15))
+    let mediumTop = field.frame.minY
+
+    // A selection from the full sheet brings it half way, so the map shows the pin.
+    JourneyApp.expandSheet(app, topElement: field)
+    row.tap()
+    let back = app.buttons["details.back"]
+    XCTAssertTrue(back.waitForExistence(timeout: 5))
+    let halfWay = NSPredicate { _, _ in abs(back.frame.minY - mediumTop) < 40 }
+    XCTAssertEqual(
+      XCTWaiter.wait(
+        for: [XCTNSPredicateExpectation(predicate: halfWay, object: nil)], timeout: 5),
+      .completed, "The sheet returns to the medium detent")
+    XCTAssertTrue(app.buttons[JourneyApp.pin(JourneyApp.steissin)].isSelected)
+
+    // Closed, the sheet shows only the selection, without "Back to results".
+    let summary = app.descendants(matching: .any)["details.summary"]
+    JourneyApp.collapseSheet(app, topElement: summary, handle: app.staticTexts["details.name"])
+    XCTAssertEqual(summary.label, "Steissin Apteekki, 50 m")
+    XCTAssertTrue(summary.isHittable)
+    XCTAssertFalse(back.exists)
+    XCTAssertFalse(app.staticTexts["details.name"].exists)
+    attachScreenshot(app, name: "Closed sheet with a selection (en)")
+
+    // Tapping the selection opens the sheet half way, with "Back to results".
+    summary.tap()
+    XCTAssertTrue(back.waitForExistence(timeout: 5))
+    XCTAssertEqual(
+      XCTWaiter.wait(
+        for: [XCTNSPredicateExpectation(predicate: halfWay, object: nil)], timeout: 5),
+      .completed, "The sheet opens to the medium detent")
   }
 
   @MainActor
@@ -128,7 +197,7 @@ final class SelectionTests: XCTestCase {
     XCTAssertTrue(app.buttons["details.back"].isHittable)
     XCTAssertEqual(app.buttons["details.back"].label, "Takaisin tuloksiin")
     XCTAssertTrue(app.buttons[JourneyApp.pin(JourneyApp.kaarti)].isSelected)
-    attachScreenshot(app, name: "Pin selected, peek (fi)")
+    attachScreenshot(app, name: "Pin selected (fi)")
 
     // Selecting another pin replaces the details in place and keeps the detent.
     app.buttons[JourneyApp.pin(JourneyApp.steissin)].tap()
@@ -159,13 +228,13 @@ final class SelectionTests: XCTestCase {
     XCTAssertTrue(missing.waitForExistence(timeout: 5))
     XCTAssertTrue(missing.isHittable)
     XCTAssertEqual(missing.label, "Aukioloajat eivät saatavilla")
-    attachScreenshot(app, name: "Missing address and hours, large (fi)")
+    attachScreenshot(app, name: "Missing address and hours (fi)")
 
     app.buttons["details.back"].tap()
     XCTAssertTrue(kaartiRow.waitForExistence(timeout: 5))
     XCTAssertTrue(kaartiRow.isSelected)
     XCTAssertFalse(app.buttons[JourneyApp.row(JourneyApp.steissin)].isSelected)
-    attachScreenshot(app, name: "Back to results, large (fi)")
+    attachScreenshot(app, name: "Back to results (fi)")
   }
 }
 
@@ -245,19 +314,22 @@ enum JourneyApp {
     return app
   }
 
-  /// Drags the sheet down by the results title until `topElement` is in the lower half of the
-  /// screen. The title is plain text, and the list is scrolled to the top, so the drag resizes
-  /// the sheet. The grabber can sit under the status bar on short screens.
+  /// Drags the sheet down by `handle`, the results title by default, until `topElement` is in the
+  /// lower half of the screen. The handle is plain text, and the content is scrolled to the top,
+  /// so the drag resizes the sheet. The grabber can sit under the status bar on short screens.
   @MainActor
   static func collapseSheet(
-    _ app: XCUIApplication, topElement: XCUIElement, file: StaticString = #filePath,
-    line: UInt = #line
+    _ app: XCUIApplication, topElement: XCUIElement, handle: XCUIElement? = nil,
+    file: StaticString = #filePath, line: UInt = #line
   ) {
     let window = app.windows.firstMatch
     let bottom = window.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.97))
-    app.staticTexts["results.title"].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+    (handle ?? app.staticTexts["results.title"])
+      .coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
       .press(forDuration: 0.1, thenDragTo: bottom, withVelocity: .slow, thenHoldForDuration: 0.2)
-    let collapsed = NSPredicate { _, _ in topElement.frame.minY > window.frame.height * 0.5 }
+    let collapsed = NSPredicate { _, _ in
+      topElement.exists && topElement.frame.minY > window.frame.height * 0.5
+    }
     XCTAssertEqual(
       XCTWaiter.wait(
         for: [XCTNSPredicateExpectation(predicate: collapsed, object: nil)], timeout: 5),

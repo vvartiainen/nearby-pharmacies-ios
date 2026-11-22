@@ -22,6 +22,10 @@ extension Color {
   static let noticeSurface = Color(light: 0xFFF4D6, dark: 0x3A2E10)
   static let noticeBorder = Color(light: 0xE2C06E, dark: 0x7A6230)
   static let noticeText = Color(light: 0x5C3D00, dark: 0xF5D48A)
+  /// Result row distances below 500 m, below 1 km and from 1 km, as on web.
+  static let distanceNear = Color(light: 0x166144, dark: 0x8FE3B1)
+  static let distanceMedium = Color(light: 0x785300, dark: 0xF3CD76)
+  static let distanceFar = Color(light: 0xA82B38, dark: 0xFF9DA0)
   /// The selection line between the origin and the selected pin, the same blue as the web app's.
   static let selectionLine = Color(light: 0x243E9E, dark: 0x5B9BFF)
 

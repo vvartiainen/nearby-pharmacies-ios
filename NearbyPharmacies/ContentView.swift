@@ -21,6 +21,11 @@ struct ContentView: View {
   @State private var didChooseInitialDetent = false
   /// The detent before the search field took focus, restored when the search is done.
   @State private var detentBeforeSearch: PresentationDetent?
+  /// The closed detent shows only the search field; its height follows the field's.
+  @State private var closedHeight: CGFloat = 110
+  /// A selection made while the sheet was closed opens it, then fits once it settles.
+  @State private var fitsSelectionWhenSettled = false
+  @State private var settleTask: Task<Void, Never>?
   private let accessibilityTextSize: Bool
 
   /// Below this screen height the medium detent cannot show the header and a full result at
@@ -29,13 +34,12 @@ struct ContentView: View {
 
   init(controller: OriginController) {
     self.controller = controller
-    // At accessibility text sizes the sheet opens at the medium detent so at least one full row
-    // shows, or at the large detent on short screens. Otherwise it opens at the peek detent: the
-    // header and the nearest result.
+    // The sheet opens half way, with the map and the nearest results, or at the large detent on
+    // short screens at accessibility text sizes, so at least one full row shows.
     accessibilityTextSize =
       UIApplication.shared.preferredContentSizeCategory
       .isAccessibilityCategory
-    _detent = State(initialValue: accessibilityTextSize ? .medium : .peek)
+    _detent = State(initialValue: .medium)
   }
 
   var body: some View {
@@ -59,22 +63,37 @@ struct ContentView: View {
       }
     }
     .sheet(isPresented: .constant(true)) {
-      ResultsSheet(controller: controller, onSearchFocusChange: searchFocusChanged)
-        .onGeometryChange(for: CGFloat.self) {
-          $0.frame(in: .global).minY
-        } action: {
-          sheetTop = $0
-          fitInitially()
-        }
-        .presentationDetents([.peek, .medium, .large], selection: $detent)
-        .presentationBackgroundInteraction(.enabled(upThrough: .medium))
-        .presentationDragIndicator(.visible)
-        // Like Maps: dragging the list first moves the sheet to the next detent, then scrolls.
-        .presentationContentInteraction(.resizes)
-        .presentationBackground(Color.surfaceDefault)
-        .interactiveDismissDisabled()
+      ResultsSheet(
+        controller: controller, onSearchFocusChange: searchFocusChanged,
+        onClosedHeightChange: closedHeightChanged, isClosed: detent == closedDetent,
+        onOpen: { detent = .medium }
+      )
+      .onGeometryChange(for: CGFloat.self) {
+        $0.frame(in: .global).minY
+      } action: {
+        sheetTop = $0
+        fitInitially()
+        fitSelectionOnceSettled()
+      }
+      .presentationDetents([closedDetent, .medium, .large], selection: $detent)
+      .presentationBackgroundInteraction(.enabled(upThrough: .medium))
+      .presentationDragIndicator(.visible)
+      // Like Maps: dragging the list first moves the sheet to the next detent, then scrolls.
+      .presentationContentInteraction(.resizes)
+      .presentationBackground(Color.surfaceDefault)
+      .interactiveDismissDisabled()
     }
-    .onChange(of: finder.selectionCount) { fitSelection() }
+    .onChange(of: finder.selectionCount) {
+      // Like the web drawer, a closed sheet opens to show the details. A full sheet comes down
+      // half way, so the map shows the selected pin.
+      if detent == closedDetent || detent == .large {
+        detentBeforeSearch = nil
+        fitsSelectionWhenSettled = true
+        detent = .medium
+      } else {
+        fitSelection()
+      }
+    }
     .onChange(of: finder.originChangeCount) {
       restoreDetentAfterSearch()
       if finder.fitsMapToOrigin { fitOriginAndResults(animated: true) }
@@ -89,6 +108,29 @@ struct ContentView: View {
       detent = .large
     } else if controller.search == .idle {
       restoreDetentAfterSearch()
+    }
+  }
+
+  private var closedDetent: PresentationDetent { .height(closedHeight) }
+
+  private func closedHeightChanged(_ height: CGFloat) {
+    guard abs(height - closedHeight) > 0.5 else { return }
+    let wasClosed = detent == closedDetent
+    let restoresClosed = detentBeforeSearch == closedDetent
+    closedHeight = height
+    if wasClosed { detent = closedDetent }
+    if restoresClosed { detentBeforeSearch = closedDetent }
+  }
+
+  /// Fits a pending selection once the sheet has stopped moving, so the fit uses its final height.
+  private func fitSelectionOnceSettled() {
+    guard fitsSelectionWhenSettled else { return }
+    settleTask?.cancel()
+    settleTask = Task {
+      try? await Task.sleep(for: .milliseconds(150))
+      guard !Task.isCancelled else { return }
+      fitsSelectionWhenSettled = false
+      fitSelection()
     }
   }
 
@@ -127,7 +169,7 @@ struct ContentView: View {
     fit(points, animated: animated)
   }
 
-  /// Fits the origin and the selected pin above the sheet, which keeps its detent.
+  /// Fits the origin and the selected pin above the sheet.
   private func fitSelection() {
     guard let selected = finder.selected else { return }
     fit(
@@ -163,24 +205,6 @@ struct ContentView: View {
     } else {
       position = .rect(rect)
     }
-  }
-}
-
-extension PresentationDetent {
-  /// The sheet's smallest detent: the header and the nearest result.
-  static let peek = Self.custom(PeekDetent.self)
-}
-
-/// The header and one result row at the current text size. The heights follow the default
-/// layout at the Large text size and scale with Dynamic Type.
-private struct PeekDetent: CustomPresentationDetent {
-  static func height(in context: Context) -> CGFloat? {
-    let category = UIContentSizeCategory(context.dynamicTypeSize)
-    let traits = UITraitCollection(preferredContentSizeCategory: category)
-    // Top padding, the search field and spacing do not scale; the text lines do.
-    let fixed: CGFloat = 24 + 44 + 16 + 24 + 8
-    let text = UIFontMetrics.default.scaledValue(for: 100, compatibleWith: traits)
-    return min(fixed + text, context.maxDetentValue * 0.6)
   }
 }
 

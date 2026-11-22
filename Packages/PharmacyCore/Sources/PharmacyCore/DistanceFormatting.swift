@@ -24,6 +24,22 @@ public enum DistanceFormatting {
     return format(halfUp(meters / 1_000), unit: .kilometers, fractionDigits: 0, locale: locale)
   }
 
+  /// The colour band of a result row's distance: near below 500 m, medium below 1 km, far from
+  /// 1 km. It uses the distance rounded to 10 m, as displayed, so rows with the same label share a
+  /// colour. The same rule as the web app's `distanceBand`.
+  public enum Band: Sendable, Hashable {
+    case near, medium, far
+  }
+
+  /// - Precondition: `meters` is finite and not negative.
+  public static func band(meters: Double) -> Band {
+    precondition(meters.isFinite && meters >= 0, "Invalid distance: \(meters)")
+    let rounded = halfUp(meters / 10) * 10
+    if rounded < 500 { return .near }
+    if rounded < 1_000 { return .medium }
+    return .far
+  }
+
   /// Half up for the non-negative values used here, the same as JavaScript's `Math.round`.
   private static func halfUp(_ value: Double) -> Double {
     value.rounded(.toNearestOrAwayFromZero)

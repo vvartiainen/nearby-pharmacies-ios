@@ -1,3 +1,4 @@
+import PharmacyCore
 import SwiftUI
 
 /// The content of the results sheet: the origin search and summary, notices and the list, or the
@@ -7,6 +8,12 @@ struct ResultsSheet: View {
   let controller: OriginController
   /// Reports whether the search field has focus, so the sheet can make room for the keyboard.
   var onSearchFocusChange: (Bool) -> Void = { _ in }
+  /// Reports the sheet height that shows only the search field: the closed detent.
+  var onClosedHeightChange: (CGFloat) -> Void = { _ in }
+  /// Whether the sheet is at its closed detent, where a selection shows only its name and distance.
+  var isClosed = false
+  /// Opens the closed sheet to show the details.
+  var onOpen: () -> Void = {}
   @AccessibilityFocusState private var focus: FocusTarget?
   @FocusState private var searchFocused: Bool
   @State private var draft = ""
@@ -22,7 +29,11 @@ struct ResultsSheet: View {
   var body: some View {
     Group {
       if finder.showsDetails, let selected = finder.selected {
-        details(selected)
+        if isClosed {
+          closedSelection(selected)
+        } else {
+          details(selected)
+        }
       } else {
         list
       }
@@ -93,8 +104,11 @@ struct ResultsSheet: View {
             .accessibilityIdentifier("attribution")
         }
         .padding(.horizontal, Spacing.lg)
-        .padding(.top, Spacing.xl)
+        .padding(.top, Self.topPadding)
         .padding(.bottom, Spacing.lg)
+        // The scroll target is the padded content, so scrolling to it keeps the space above the
+        // search field.
+        .id(Self.topID)
       }
       .scrollBounceBehavior(.basedOnSize)
       .onAppear {
@@ -111,14 +125,19 @@ struct ResultsSheet: View {
   }
 
   private static let topID = "sheet.top"
+  /// Above the search field, below the drag indicator.
+  static let topPadding = Spacing.xl
+  /// 28rem on web.
+  private static let detailsMaxWidth: CGFloat = 448
 
   private var header: some View {
-    OriginSearch(controller: controller, draft: $draft, focus: $searchFocused)
-      .id(Self.topID)
-      .fixedSize(horizontal: false, vertical: true)
-      // Like a navigation bar, the header stops growing at the largest standard size so the medium
-      // detent still shows a full result at accessibility sizes. Rows and details scale fully.
-      .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+    OriginSearch(controller: controller, draft: $draft, focus: $searchFocused) { fieldHeight in
+      onClosedHeightChange(Self.topPadding + fieldHeight + Spacing.lg)
+    }
+    .fixedSize(horizontal: false, vertical: true)
+    // Like a navigation bar, the header stops growing at the largest standard size so the medium
+    // detent still shows a full result at accessibility sizes. Rows and details scale fully.
+    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
   }
 
   private var resultsHeading: some View {
@@ -140,6 +159,38 @@ struct ResultsSheet: View {
 
   // MARK: - Details
 
+  /// The closed sheet has room for one line, so it shows only the selection, like its row.
+  /// Tapping it opens the sheet, where the details and "Back to results" return.
+  private func closedSelection(_ selected: PharmacyResult) -> some View {
+    Button(action: onOpen) {
+      HStack(alignment: .center, spacing: Spacing.md) {
+        Text(selected.name)
+          .font(.headline)
+          .foregroundStyle(Color.textPrimary)
+          .lineLimit(2)
+          .frame(maxWidth: .infinity, alignment: .leading)
+        Text(selected.distance)
+          .font(.subheadline.weight(.semibold).monospacedDigit())
+          .foregroundStyle(selected.band.color)
+          .fixedSize()
+        Image(systemName: "chevron.up")
+          .font(.footnote.weight(.semibold))
+          .foregroundStyle(Color.textSecondary)
+      }
+      .padding(.horizontal, Spacing.lg)
+      .padding(.top, Self.topPadding)
+      .padding(.bottom, Spacing.lg)
+      .frame(maxWidth: .infinity, maxHeight: .infinity)
+      .contentShape(.rect)
+    }
+    .buttonStyle(.plain)
+    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+    .accessibilityElement(children: .ignore)
+    .accessibilityLabel(selected.rowAccessibilityLabel)
+    .accessibilityAddTraits(.isButton)
+    .accessibilityIdentifier("details.summary")
+  }
+
   private func details(_ selected: PharmacyResult) -> some View {
     let localization = finder.localization
     return VStack(spacing: 0) {
@@ -158,14 +209,20 @@ struct ResultsSheet: View {
       .padding(.horizontal, Spacing.lg)
       .padding(.top, Spacing.md)
 
-      ScrollView {
-        PharmacyDetails(result: selected, localization: localization)
-          .padding(.horizontal, Spacing.lg)
-          .padding(.top, Spacing.sm)
-          .padding(.bottom, Spacing.xl)
-          .accessibilityFocused($focus, equals: .detailsName)
+      // As in the narrow web drawer, the details form a block sized to its content, at most
+      // 28rem wide, centred in the space below "Back to results" when it fits and scrolling from
+      // the top when it is taller.
+      GeometryReader { space in
+        ScrollView {
+          PharmacyDetails(result: selected, localization: localization)
+            .frame(maxWidth: Self.detailsMaxWidth)
+            .accessibilityFocused($focus, equals: .detailsName)
+            .padding(.horizontal, Spacing.lg)
+            .padding(.vertical, Spacing.sm)
+            .frame(maxWidth: .infinity, minHeight: space.size.height)
+        }
+        .scrollBounceBehavior(.basedOnSize)
       }
-      .scrollBounceBehavior(.basedOnSize)
       // Selecting another pharmacy replaces the details and starts from the top.
       .id(selected.id)
     }
@@ -177,8 +234,9 @@ struct ResultsSheet: View {
   }
 }
 
-/// One result: a single button read as "{name}, {distance} straight line" that exposes its
-/// selected state. The name wraps; it is never truncated.
+/// One result: a single button read as "{name}, {distance}" that exposes its selected state. The
+/// name wraps and is never truncated; the distance sits at the trailing edge, coloured by its band,
+/// as on web.
 struct ResultRow: View {
   let result: PharmacyResult
   let isSelected: Bool
@@ -186,18 +244,20 @@ struct ResultRow: View {
 
   var body: some View {
     Button(action: action) {
-      VStack(alignment: .leading, spacing: Spacing.xs) {
+      HStack(alignment: .center, spacing: Spacing.md) {
         Text(result.name)
           .font(.headline)
           .foregroundStyle(Color.textPrimary)
-        Text(result.straightLine)
-          .font(.subheadline)
-          .foregroundStyle(Color.textSecondary)
+          .frame(maxWidth: .infinity, alignment: .leading)
+        Text(result.distance)
+          .font(.subheadline.weight(.semibold).monospacedDigit())
+          .foregroundStyle(result.band.color)
+          .fixedSize()
       }
       .fixedSize(horizontal: false, vertical: true)
-      .frame(maxWidth: .infinity, minHeight: minimumHitTarget, alignment: .leading)
       .padding(.vertical, Spacing.md)
       .padding(.horizontal, Spacing.lg)
+      .frame(maxWidth: .infinity, minHeight: minimumHitTarget, alignment: .leading)
       .background(
         isSelected ? Color.selectionSurface : Color.surfaceDefault,
         in: .rect(cornerRadius: Radius.md)
@@ -211,8 +271,19 @@ struct ResultRow: View {
     }
     .buttonStyle(.plain)
     .accessibilityElement(children: .ignore)
-    .accessibilityLabel(result.accessibilityLabel)
+    .accessibilityLabel(result.rowAccessibilityLabel)
     .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
     .accessibilityIdentifier("row.\(result.id)")
+  }
+}
+
+extension DistanceFormatting.Band {
+  /// The distance colour of a row or the closed sheet's selection, as on web.
+  var color: Color {
+    switch self {
+    case .near: .distanceNear
+    case .medium: .distanceMedium
+    case .far: .distanceFar
+    }
   }
 }

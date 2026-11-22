@@ -24,7 +24,8 @@ struct PharmacyDetails: View {
 
       HoursBlock(openingHours: result.pharmacy.openingHours, localization: localization)
     }
-    .frame(maxWidth: .infinity, alignment: .leading)
+    // Sized to the content, so the parent can centre the block.
+    .fixedSize(horizontal: false, vertical: true)
   }
 
   @ViewBuilder private var address: some View {
@@ -58,7 +59,6 @@ struct HoursBlock: View {
         .accessibilityIdentifier("details.hoursHeading")
       content
     }
-    .frame(maxWidth: .infinity, alignment: .leading)
   }
 
   @ViewBuilder private var content: some View {
@@ -67,7 +67,6 @@ struct HoursBlock: View {
       Text(localization.hoursUnavailable)
         .font(.body)
         .foregroundStyle(Color.noticeText)
-        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, Spacing.md)
         .padding(.horizontal, Spacing.lg)
         .background(Color.noticeSurface, in: .rect(cornerRadius: Radius.md))

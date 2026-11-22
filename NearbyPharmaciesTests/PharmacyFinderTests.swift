@@ -34,6 +34,8 @@ struct PharmacyFinderTests {
     #expect(
       finder("en").results.first?.accessibilityLabel == "Steissin Apteekki, 50 m straight line")
     #expect(finder("fi").results.first?.accessibilityLabel == "Steissin Apteekki, 50 m linnuntietä")
+    // Rows read the distance alone, as on web.
+    #expect(finder("fi").results.first?.rowAccessibilityLabel == "Steissin Apteekki, 50 m")
     #expect(finder("fi").originLabel == "Helsingin päärautatieasema (oletus)")
   }
 

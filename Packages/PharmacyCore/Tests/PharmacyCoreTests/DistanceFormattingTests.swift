@@ -13,6 +13,16 @@ struct DistanceFormattingTests {
     #expect(normalizingSpaces(fi) == displayCase.fi)
   }
 
+  @Test(
+    "Colours distances by their displayed value, as on web",
+    arguments: [
+      (0.0, DistanceFormatting.Band.near), (494.9, .near), (495.0, .medium), (999.0, .far),
+      (994.9, .medium), (1_000.0, .far), (141_000.0, .far),
+    ])
+  func band(_ meters: Double, _ expected: DistanceFormatting.Band) {
+    #expect(DistanceFormatting.band(meters: meters) == expected)
+  }
+
   @Test func coversAllFixtureDisplayCases() {
     #expect(fixture.displayCases.count == 19)
   }

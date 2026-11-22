@@ -7,6 +7,8 @@ struct OriginSearch: View {
   let controller: OriginController
   @Binding var draft: String
   var focus: FocusState<Bool>.Binding
+  /// Reports the height of the field and the Search button, which the closed sheet shows.
+  var onFieldHeight: (CGFloat) -> Void = { _ in }
 
   private var localization: AppLocalization { controller.finder.localization }
 
@@ -15,6 +17,11 @@ struct OriginSearch: View {
       HStack(spacing: Spacing.sm) {
         field
         submitButton
+      }
+      .onGeometryChange(for: CGFloat.self) {
+        $0.size.height
+      } action: {
+        onFieldHeight($0)
       }
       if focus.wrappedValue || controller.search != .idle {
         Text(localization.searchPrivacy)
@@ -60,8 +67,8 @@ struct OriginSearch: View {
         .accessibilityIdentifier("search.field")
         if showsOrigin {
           VStack(alignment: .leading, spacing: 0) {
-            // Two lines at most, so the peek detent still shows the nearest result on narrow
-            // screens. The full label stays available to VoiceOver through the field's value.
+            // Two lines at most, so the closed sheet stays small on narrow screens. The full
+            // label stays available to VoiceOver through the field's value.
             Text(finder.originTitle)
               .font(.body)
               .foregroundStyle(Color.textPrimary)

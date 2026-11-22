@@ -3,11 +3,12 @@
 A native SwiftUI app that finds the nearest mapped pharmacies in Finland. Product
 decisions live in the planning documents outside this repository; the shared design spec is
 `docs/design/design-spec.md`. The app shows a full-screen MapKit map with a native results
-sheet. It ranks the bundled snapshot from the labeled default origin, Helsinki Central
+sheet with three detents: closed (the search field only), medium (where it opens) and large.
+It ranks the bundled snapshot from the labeled default origin, Helsinki Central
 Railway Station, and shows the 20 nearest. The origin marker, pins, rows and details stay in
 sync: selecting a row or a pin selects both, draws a dashed line from the origin and shows
-the name, distance, address and opening hours (or their fallbacks) in the sheet, which keeps
-its detent. The starting point can also come from a submitted city or address search
+the name, distance, address and opening hours (or their fallbacks) centred in the sheet, which
+keeps its detent (a closed sheet opens to medium). The starting point can also come from a submitted city or address search
 (public Nominatim, with the bundled Finnish and Swedish place names as fallback), the device
 location (asked for only after the Helsinki results show) or a point chosen on the map, with
 outside-Finland and land-border notices.
@@ -112,14 +113,15 @@ mkdir -p .build/screenshots
 xcrun simctl io SIMULATOR_UDID screenshot .build/screenshots/launch-fi.png
 ```
 
-The screenshot shows the map of central Helsinki with 20 pharmacy pins and the sheet at its
-smallest detent: the search field showing the starting point, the title, the dataset count
-and the nearest result.
+The screenshot shows the map of central Helsinki with 20 pharmacy pins and the sheet half
+open: the search field showing the starting point, the title, the dataset count and the
+nearest rows, each with its distance at the right edge in green, amber or red. Dragging the
+sheet down closes it to the search field alone.
 
 | Language | Title | Count | Starting point | Nearest result |
 | --- | --- | --- | --- | --- |
-| Finnish (`fi_FI`) | Lähimmät apteekit | Kartoitetut apteekit Suomessa · 784 | Helsingin päärautatieasema (oletus) | Steissin Apteekki, 50 m linnuntietä |
-| English (`en_GB`) | Nearest pharmacies | Mapped pharmacies in Finland · 784 | Helsinki Central Railway Station (default) | Steissin Apteekki, 50 m straight line |
+| Finnish (`fi_FI`) | Lähimmät apteekit | Kartoitetut apteekit Suomessa · 784 | Helsingin päärautatieasema (oletus) | Steissin Apteekki, 50 m |
+| English (`en_GB`) | Nearest pharmacies | Mapped pharmacies in Finland · 784 | Helsinki Central Railway Station (default) | Steissin Apteekki, 50 m |
 
 To try large text, add `-UIPreferredContentSizeCategoryName UICTContentSizeCategoryAccessibilityXXXL`
 to the launch command. For dark appearance, run `xcrun simctl ui SIMULATOR_UDID appearance dark`
@@ -136,9 +138,9 @@ the bundled data. They need no simulator:
 swift test --package-path Packages/PharmacyCore
 ```
 
-Expected last line: `Test run with 50 tests in 11 suites passed`. They check every origin of
+Expected last line: `Test run with 51 tests in 11 suites passed`. They check every origin of
 the shared fixture (order, distances within its tolerance, English and Finnish labels), all
-19 display-rounding cases, the zero distance, the exact three-way tie, two distances with the
+19 display-rounding cases, the distance colour bands, the zero distance, the exact three-way tie, two distances with the
 same label, decoding of records without name, address or hours, the bundled snapshot and place
 index against the manifest's counts, and the SHA-256 of each data file against the
 manifest. They also run the web app's `opening_hours` cases and check that the snapshot
@@ -182,11 +184,13 @@ rm -rf .build/results/unit.xcresult && xcodebuild test -project NearbyPharmacies
 
 UI tests (XCUITest, about three minutes, each attaching screenshots): default results in
 English and Finnish; row selection with details, hours, the kept detent and the origin and pin
-centred above the sheet; pin selection with "Address unavailable" and "Hours unavailable" in
+centred above the sheet; the closed sheet showing only the search field, and a pin that opens
+it with the details centred; a selection from the large sheet bringing it to the medium
+detent, and the closed sheet then showing only the selected name and distance; pin selection with "Address unavailable" and "Hours unavailable" in
 Finnish; return to the list with the selection kept; the sheet at Accessibility XXXL text,
 which opens at the medium detent (large on screens shorter than 800 points, such as iPhone SE)
 with a full result visible; and origin selection with scripted answers: the location offer and
-a granted Tampere fix, denial, a timeout in Finnish, five "Kauppakatu 1" matches, an empty
+a granted Tampere fix, "Use my location" leaving the sheet in place, denial, a timeout in Finnish, five "Kauppakatu 1" matches, an empty
 reply in Finnish, the bundled "Tammerfor" fallback, a map pick that wins over a late reply,
 panning that leaves the origin alone, "Choose on map" with "Cancel" and then "Search from here"
 winning over a late fix, and Haparanda outside Finland with "Return to Helsinki":
