@@ -259,12 +259,21 @@ final class OriginJourneyTests: XCTestCase {
       forDuration: 0.05, thenDragTo: JourneyApp.mapPoint(app, x: 0.3, y: 0.2))
     XCTAssertFalse(searchHere.waitForExistence(timeout: 1))
 
-    // "Choose on map" shows the target with "Search from here" and "Cancel".
+    // "Choose on map", at the top centre, turns into "Search from here" in place, with
+    // "Cancel" beside it.
+    let window = app.windows.firstMatch.frame
+    XCTAssertEqual(chooseOnMap.frame.midX, window.midX, accuracy: 2)
+    let controlTop = chooseOnMap.frame.minY
     chooseOnMap.tap()
     XCTAssertTrue(searchHere.waitForExistence(timeout: 5))
     XCTAssertEqual(searchHere.label, "Hae tästä kohdasta")
     let cancel = app.buttons["map.cancelPick"]
     XCTAssertEqual(cancel.label, "Peruuta")
+    sleep(1)
+    XCTAssertEqual(searchHere.frame.minY, controlTop, accuracy: 1)
+    XCTAssertEqual(
+      (searchHere.frame.minX + cancel.frame.maxX) / 2, window.midX, accuracy: 2,
+      "The pair stays centred")
     cancel.tap()
     XCTAssertTrue(chooseOnMap.waitForExistence(timeout: 5))
     XCTAssertFalse(searchHere.exists)

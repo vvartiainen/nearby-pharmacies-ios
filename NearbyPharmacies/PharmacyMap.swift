@@ -25,15 +25,12 @@ struct PharmacyMap: View {
     MapReader { proxy in
       map
         .gesture(MapLongPress { point in pick(point, proxy) })
-        .onChange(of: finder.originChangeCount) { isPicking = false }
-        .onChange(of: finder.selectionCount) { isPicking = false }
+        .onChange(of: finder.originChangeCount) { setPicking(false) }
+        .onChange(of: finder.selectionCount) { setPicking(false) }
         .overlay {
-          if isPicking {
-            picker(proxy)
-          } else {
-            chooseOnMap
-          }
+          if isPicking { target }
         }
+        .overlay(alignment: .top) { pickControl(proxy) }
         .accessibilityAction(named: finder.localization.searchFromHere) {
           pick(pickPoint, proxy)
         }
@@ -43,73 +40,72 @@ struct PharmacyMap: View {
 
   private func pick(_ point: CGPoint, _ proxy: MapProxy) {
     guard let coordinate = proxy.convert(point, from: .local) else { return }
-    isPicking = false
+    setPicking(false)
     lastPick = .now
     onPick(Coordinate(lat: coordinate.latitude, lon: coordinate.longitude))
   }
 
-  /// Starts picking, below the status bar at the leading edge, clear of the compass.
-  private var chooseOnMap: some View {
-    Button {
-      isPicking = true
-    } label: {
-      Label(finder.localization.chooseOnMap, systemImage: "mappin.and.ellipse")
-        .font(.subheadline.weight(.semibold))
-        .padding(.horizontal, Spacing.md)
-        .frame(minHeight: minimumHitTarget)
-    }
-    .buttonStyle(.plain)
-    .foregroundStyle(Color.interactivePrimary)
-    .background(Color.surfaceDefault, in: .capsule)
-    .overlay(Capsule().strokeBorder(Color.borderStrong))
-    .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
-    .dynamicTypeSize(...DynamicTypeSize.accessibility1)
-    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-    .padding(.top, topInset + Spacing.sm)
-    .padding(.leading, Spacing.md)
-    .accessibilityIdentifier("map.chooseOnMap")
+  private func setPicking(_ picking: Bool) {
+    guard picking != isPicking else { return }
+    withAnimation(.snappy(duration: 0.25)) { isPicking = picking }
   }
 
-  /// A target at the point "Search from here" uses, and the buttons below the status bar.
-  private func picker(_ proxy: MapProxy) -> some View {
-    ZStack {
-      Image(systemName: "plus.circle")
-        .font(.title2.weight(.light))
-        .foregroundStyle(Color.selectionLine)
-        .background(Circle().fill(.white.opacity(0.7)))
-        .position(pickPoint)
-        .accessibilityHidden(true)
-        .allowsHitTesting(false)
-      HStack(spacing: Spacing.sm) {
-        Button {
-          pick(pickPoint, proxy)
-        } label: {
-          Label(finder.localization.searchFromHere, systemImage: "scope")
-            .padding(.horizontal, Spacing.lg)
-            .frame(minHeight: minimumHitTarget)
-        }
-        .foregroundStyle(Color.interactiveOnPrimary)
-        .background(Color.interactivePrimary, in: .capsule)
-        .accessibilityIdentifier("map.searchHere")
-        Button {
-          isPicking = false
-        } label: {
-          Text(finder.localization.cancelMapPick)
-            .padding(.horizontal, Spacing.md)
-            .frame(minHeight: minimumHitTarget)
-        }
-        .foregroundStyle(Color.interactivePrimary)
-        .background(Color.surfaceDefault, in: .capsule)
-        .overlay(Capsule().strokeBorder(Color.borderStrong))
-        .accessibilityIdentifier("map.cancelPick")
+  /// One capsule at the top centre, below the status bar: "Choose on map" turns into
+  /// "Search from here", and a round Cancel button slides in beside it.
+  private func pickControl(_ proxy: MapProxy) -> some View {
+    let localization = finder.localization
+    return HStack(spacing: Spacing.sm) {
+      Button {
+        if isPicking { pick(pickPoint, proxy) } else { setPicking(true) }
+      } label: {
+        Label(
+          isPicking ? localization.searchFromHere : localization.chooseOnMap,
+          systemImage: isPicking ? "scope" : "mappin.and.ellipse"
+        )
+        .contentTransition(.opacity)
+        .padding(.horizontal, isPicking ? Spacing.lg : Spacing.md)
+        .frame(minHeight: minimumHitTarget)
+        .foregroundStyle(isPicking ? Color.interactiveOnPrimary : Color.interactivePrimary)
+        .background(isPicking ? Color.interactivePrimary : Color.surfaceDefault, in: .capsule)
+        .overlay(Capsule().strokeBorder(isPicking ? Color.clear : Color.borderStrong))
+        .contentShape(.capsule)
       }
-      .buttonStyle(.plain)
-      .font(.subheadline.weight(.semibold))
-      .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
-      .dynamicTypeSize(...DynamicTypeSize.accessibility1)
-      .frame(maxHeight: .infinity, alignment: .top)
-      .padding(.top, topInset + Spacing.sm)
+      .accessibilityIdentifier(isPicking ? "map.searchHere" : "map.chooseOnMap")
+      if isPicking {
+        Button {
+          setPicking(false)
+        } label: {
+          Image(systemName: "xmark")
+            .font(.body.weight(.semibold))
+            .frame(width: minimumHitTarget, height: minimumHitTarget)
+            .foregroundStyle(Color.textPrimary)
+            .background(Color.surfaceDefault, in: .circle)
+            .overlay(Circle().strokeBorder(Color.borderStrong))
+            .contentShape(.circle)
+        }
+        .accessibilityLabel(localization.cancelMapPick)
+        .accessibilityIdentifier("map.cancelPick")
+        .transition(.scale(scale: 0.5).combined(with: .opacity))
+      }
     }
+    .buttonStyle(.plain)
+    .font(.subheadline.weight(.semibold))
+    .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
+    .dynamicTypeSize(...DynamicTypeSize.accessibility1)
+    .padding(.top, topInset + Spacing.sm)
+    .padding(.horizontal, Spacing.md)
+  }
+
+  /// The target at the point "Search from here" uses.
+  private var target: some View {
+    Image(systemName: "plus.circle")
+      .font(.title2.weight(.light))
+      .foregroundStyle(Color.selectionLine)
+      .background(Circle().fill(.white.opacity(0.7)))
+      .position(pickPoint)
+      .accessibilityHidden(true)
+      .allowsHitTesting(false)
+      .transition(.scale(scale: 0.6).combined(with: .opacity))
   }
 
   private var map: some View {
