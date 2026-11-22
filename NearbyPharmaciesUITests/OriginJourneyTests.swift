@@ -50,7 +50,6 @@ final class OriginJourneyTests: XCTestCase {
     let app = JourneyApp.launch(
       language: "en", locale: "en_GB",
       environment: ["UITEST_LOCATION_PROMPT": "1", "UITEST_LOCATION": Self.tampere])
-    // The Helsinki results show first, then the offer; the app asks only after "Use location".
     let first = JourneyApp.firstRow(app)
     XCTAssertTrue(first.waitForExistence(timeout: 15))
     waitForLabel(first, "BEGINSWITH", "Steissin Apteekki")
@@ -62,11 +61,9 @@ final class OriginJourneyTests: XCTestCase {
     offer.buttons["Use location"].tap()
 
     waitForLabel(first, "BEGINSWITH", "Tullintorin apteekki")
-    // The bundled address index names the nearest street address, as on web.
     waitForOrigin(app, "Near Rautatienkatu 25, Tampere")
     attachScreenshot(app, name: "Ranked from the device location (en)")
 
-    // Pins and rows stay in sync for the new results.
     let id = first.identifier.replacingOccurrences(of: "row.", with: "")
     first.tap()
     XCTAssertTrue(app.staticTexts["details.name"].waitForExistence(timeout: 5))
@@ -156,7 +153,6 @@ final class OriginJourneyTests: XCTestCase {
     XCTAssertEqual(JourneyApp.originText(app), "Kauppakatu 1 · Tampere, Finland")
     XCTAssertEqual(app.staticTexts["search.origin"].exists, false, "The summary is not read twice")
     waitForLabel(JourneyApp.firstRow(app), "BEGINSWITH", "Yliopiston Apteekki")
-    // The sheet returns to the detent it had before the search.
     let returned = NSPredicate { _, _ in abs(field.frame.minY - peekTop) < 40 }
     XCTAssertEqual(
       XCTWaiter.wait(
@@ -180,7 +176,6 @@ final class OriginJourneyTests: XCTestCase {
       message.label,
       "Hakusanalla ”Kuvitteellinen 123” ei löytynyt paikkoja Suomesta. Tarkista kirjoitusasu tai valitse kohta kartalta."
     )
-    // The field keeps the text for a correction; the origin stays.
     XCTAssertEqual(JourneyApp.originText(app), "Kuvitteellinen 123")
     XCTAssertEqual(
       app.descendants(matching: .any)["map.origin"].label,
@@ -233,7 +228,6 @@ final class OriginJourneyTests: XCTestCase {
     waitForOrigin(app, "Dropped pin")
     let marker = app.descendants(matching: .any)["map.origin"]
     XCTAssertTrue(marker.label.hasSuffix("Dropped pin"))
-    // The closed sheet opens half way, and the map moves the point above it.
     let window = app.windows.firstMatch.frame
     let revealed = NSPredicate { _, _ in
       field.frame.minY < window.height * 0.6 && marker.frame.maxY < field.frame.minY - 20
@@ -246,7 +240,6 @@ final class OriginJourneyTests: XCTestCase {
     XCTAssertFalse(app.staticTexts["details.name"].exists, "A touch and hold does not select a pin")
     let reranked = JourneyApp.firstRow(app).label
 
-    // The reply arrives after the pick and is ignored.
     sleep(5)
     XCTAssertFalse(app.staticTexts["matches.heading"].exists)
     XCTAssertEqual(JourneyApp.originText(app), "Dropped pin")
@@ -267,7 +260,6 @@ final class OriginJourneyTests: XCTestCase {
     location.tap()
     XCTAssertFalse(location.isEnabled, "Busy while locating")
 
-    // Panning alone only moves the map.
     let searchHere = app.buttons["map.searchHere"]
     let chooseOnMap = app.buttons["map.chooseOnMap"]
     XCTAssertEqual(chooseOnMap.label, "Valitse kartalta")
@@ -275,8 +267,6 @@ final class OriginJourneyTests: XCTestCase {
       forDuration: 0.05, thenDragTo: JourneyApp.mapPoint(app, x: 0.3, y: 0.2))
     XCTAssertFalse(searchHere.waitForExistence(timeout: 1))
 
-    // "Choose on map", at the top centre, turns into "Search from here" in place, with
-    // "Cancel" beside it.
     let window = app.windows.firstMatch.frame
     XCTAssertEqual(chooseOnMap.frame.midX, window.midX, accuracy: 2)
     let controlTop = chooseOnMap.frame.minY

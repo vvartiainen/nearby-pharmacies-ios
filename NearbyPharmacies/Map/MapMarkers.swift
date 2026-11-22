@@ -1,8 +1,5 @@
 import SwiftUI
 
-/// A pharmacy pin: a teardrop with an on-primary cross and an accent fill. The selected pin is
-/// about 1.5 times larger, has a stronger fill and an extra outline, so it stands out without
-/// colour. The view's bottom edge is the tip, so the annotation anchors at `.bottom`.
 struct PharmacyPin: View {
   let isSelected: Bool
 
@@ -38,7 +35,6 @@ struct PharmacyPin: View {
     .contentShape(Rectangle())
   }
 
-  /// Rounded on every corner but the bottom trailing one, which points down after the rotation.
   private func teardrop(_ side: CGFloat) -> UnevenRoundedRectangle {
     UnevenRoundedRectangle(
       topLeadingRadius: side / 2, bottomLeadingRadius: side / 2, bottomTrailingRadius: 2,
@@ -46,8 +42,6 @@ struct PharmacyPin: View {
   }
 }
 
-/// The starting point: a blue dot with a halo, never a teardrop, so it cannot be mistaken for a
-/// pharmacy.
 struct OriginMarker: View {
   var body: some View {
     ZStack {

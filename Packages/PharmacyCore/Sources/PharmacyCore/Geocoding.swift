@@ -18,11 +18,9 @@ public struct PlaceMatch: Hashable, Sendable {
       .joined(separator: ", ")
   }
 
-  /// The match in one line, as on web.
   public var label: String { context.isEmpty ? title : "\(title) · \(context)" }
 }
 
-/// Which keyless geocoder the app calls, from `geocoder.json` (ADR 0002 in the web repo).
 public struct GeocoderConfig: Hashable, Sendable, Decodable {
   public enum Provider: String, Hashable, Sendable, Decodable {
     case nominatim
@@ -34,7 +32,6 @@ public struct GeocoderConfig: Hashable, Sendable, Decodable {
   /// Lowercase ISO 3166-1 alpha-2 code of the region filter, for example "fi".
   public let countryCode: String
 
-  /// Public Nominatim, restricted to Finland.
   public static let `default` = GeocoderConfig(
     provider: .nominatim, endpoint: URL(string: "https://nominatim.openstreetmap.org/search")!,
     countryCode: "fi")

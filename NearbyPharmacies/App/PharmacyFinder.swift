@@ -2,78 +2,37 @@ import Foundation
 import Observation
 import PharmacyCore
 
-/// One ranked pharmacy, with the strings the row, pin and details show.
 struct PharmacyResult: Identifiable, Hashable {
   let pharmacy: Pharmacy
   /// Unrounded straight-line distance in metres.
   let distanceMeters: Double
   let name: String
-  /// The rounded distance alone, for example "300 m".
   let distance: String
-  /// The labeled distance, for example "300 m straight line".
   let straightLine: String
-  /// The colour of the row's distance.
   let band: DistanceFormatting.Band
 
   var id: String { pharmacy.id }
-  /// "{name}, {distance} straight line", read for the pin.
   var accessibilityLabel: String { "\(name), \(straightLine)" }
-  /// "{name}, {distance}", read for the row, as on web.
   var rowAccessibilityLabel: String { "\(name), \(distance)" }
 }
 
-/// The active starting point and the source of its label.
-struct Origin: Hashable {
-  enum Kind: Hashable {
-    /// Helsinki Central Railway Station, before any other choice.
-    case `default`
-    /// A device location fix.
-    case device
-    /// A point chosen on the map.
-    case pin
-    /// A search match: "Kauppakatu 1" in "Tampere, Finland".
-    case search(title: String, context: String)
-  }
-
-  let kind: Kind
-  let coordinate: Coordinate
-
-  /// OSM node/25474663, Helsinki Central Railway Station, as in the ranking fixture and the web app.
-  static let helsinkiCentral = Origin(
-    kind: .default, coordinate: Coordinate(lat: 60.1720965, lon: 24.9412486))
-
-  static func match(_ match: PlaceMatch) -> Origin {
-    Origin(kind: .search(title: match.title, context: match.context), coordinate: match.coordinate)
-  }
-}
-
-/// The app's state: the bundled data, the origin, its nearest results and the one selection that
-/// drives the pin, the row and the details.
 @MainActor
 @Observable
 final class PharmacyFinder {
-  /// How many nearest pharmacies the list and the map show, as on web.
   static let resultLimit = 20
 
   let localization: AppLocalization
-  /// Number of pharmacies in the bundled Finland snapshot.
   let datasetCount: Int
   private let pharmacies: [Pharmacy]
   let coverageGeometry: CoverageGeometry?
 
   private(set) var origin: Origin
-  /// The nearest street address of a device fix or a chosen point, once the lookup finds one.
   private(set) var originAddress: AddressIndex.Address?
   private(set) var results: [PharmacyResult] = []
-  /// One selected pharmacy drives the row, the pin and the details. Selection never moves the
-  /// origin.
   private(set) var selectedID: String?
-  /// Whether the sheet shows the details of the selection instead of the list. Returning to the
-  /// list keeps the selection.
   private(set) var showsDetails = false
   /// Increments with each selection so the map refits when the same pharmacy is chosen again.
   private(set) var selectionCount = 0
-  /// Where the origin lies relative to the bundled coverage, for the notices above the list.
   private(set) var coverage: CoverageGeometry.Classification = .covered
   /// Increments with each new origin. `fitsMapToOrigin` says whether the map should fit the
   /// origin and its results: a point chosen on the map keeps the viewport.
@@ -92,7 +51,6 @@ final class PharmacyFinder {
     rank()
   }
 
-  /// Loads the snapshot bundled with the app.
   convenience init(localization: AppLocalization, bundle: Bundle = .main) {
     let loader = PharmacyDataLoader(bundle: bundle)
     let snapshot: PharmacySnapshot
@@ -123,7 +81,6 @@ final class PharmacyFinder {
     selectedID.flatMap { id in results.first { $0.id == id } }
   }
 
-  /// Labels the current device fix or chosen point with a nearby street address.
   func setOriginAddress(_ address: AddressIndex.Address?) {
     switch origin.kind {
     case .device, .pin: originAddress = address
@@ -131,7 +88,6 @@ final class PharmacyFinder {
     }
   }
 
-  /// Selects a pharmacy from its row or pin and shows its details.
   func select(_ id: String) {
     guard results.contains(where: { $0.id == id }) else { return }
     selectedID = id
@@ -139,7 +95,6 @@ final class PharmacyFinder {
     selectionCount += 1
   }
 
-  /// Returns from the details to the list; the pharmacy stays selected.
   func backToResults() {
     showsDetails = false
   }
@@ -160,7 +115,6 @@ final class PharmacyFinder {
       }
   }
 
-  /// The label of the active starting point, in one line.
   var originLabel: String {
     switch origin.kind {
     case .default: localization.defaultOrigin
@@ -170,22 +124,18 @@ final class PharmacyFinder {
     }
   }
 
-  /// The first line of the origin summary: the label, a match's place or street, or "Near …"
-  /// for a device fix or a chosen point with a nearby address.
   var originTitle: String {
     if case .search(let title, _) = origin.kind { return title }
     if let originAddress { return localization.nearAddress(originAddress.street) }
     return originLabel
   }
 
-  /// The smaller locality line under the title, or nil.
   var originContext: String? {
     if case .search(_, let context) = origin.kind, !context.isEmpty { return context }
     if let city = originAddress?.city, !city.isEmpty { return city }
     return nil
   }
 
-  /// What the idle search field reads to VoiceOver: the summary in one line.
   var originFieldLabel: String {
     guard originAddress != nil else { return originLabel }
     return [originTitle, originContext].compactMap { $0 }.joined(separator: ", ")

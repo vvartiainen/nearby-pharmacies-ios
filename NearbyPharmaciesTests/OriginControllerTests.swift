@@ -100,7 +100,6 @@ struct OriginControllerTests {
     #expect(controller.finder.selectedID == nil)
     #expect(controller.finder.fitsMapToOrigin)
 
-    // The bundled address index then names the nearest street address, as on web.
     await settle { controller.finder.originAddress != nil }
     #expect(controller.finder.originTitle == "Near Rautatienkatu 25")
     #expect(controller.finder.originContext == "Tampere")
@@ -126,7 +125,6 @@ struct OriginControllerTests {
     #expect(controller.finder.originTitle == "Near Rautatienkatu 25")
     #expect(controller.finder.originLabel == "Dropped pin")
 
-    // A new origin drops the label.
     controller.returnToHelsinki()
     #expect(controller.finder.originAddress == nil)
     #expect(controller.finder.originTitle == "Helsinki Central Railway Station (default)")

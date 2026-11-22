@@ -18,7 +18,6 @@ public struct CoverageGeometry: Hashable, Sendable, Decodable {
     case outside
   }
 
-  /// Where a starting point lies relative to the data's coverage, the same test as on web.
   public func classify(_ point: Coordinate) -> Classification {
     var inside = false
     for ring in rings {

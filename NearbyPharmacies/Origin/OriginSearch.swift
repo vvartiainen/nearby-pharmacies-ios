@@ -1,8 +1,6 @@
 import PharmacyCore
 import SwiftUI
 
-/// "City or street address" with the location control and Search, then the search or location
-/// message and the matches to choose from.
 struct OriginSearch: View {
   let controller: OriginController
   @Binding var draft: String
@@ -42,8 +40,6 @@ struct OriginSearch: View {
     }
   }
 
-  /// Idle, the field shows the active starting point, as on web: the address or name above a
-  /// smaller locality line. Editing replaces it with the search text.
   private var showsOrigin: Bool { !focus.wrappedValue && draft.isEmpty }
 
   private var field: some View {
@@ -62,7 +58,6 @@ struct OriginSearch: View {
         .onSubmit(submit)
         .autocorrectionDisabled()
         .foregroundStyle(Color.textPrimary)
-        // VoiceOver reads the field's label, then the starting point it shows.
         .accessibilityValue(showsOrigin ? finder.originFieldLabel : draft)
         .accessibilityIdentifier("search.field")
         if showsOrigin {
@@ -221,7 +216,6 @@ struct OriginSearch: View {
   }
 }
 
-/// The outside-Finland and land-border notices above the results.
 struct CoverageNotice: View {
   let controller: OriginController
 

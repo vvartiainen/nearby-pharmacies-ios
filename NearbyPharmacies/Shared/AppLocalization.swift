@@ -31,7 +31,6 @@ struct AppLocalization: Sendable {
       ?? baseBundle
   }
 
-  /// Returns the first preferred language the app supports, or English.
   static func resolveLanguage(preferredLanguages: [String]) -> Language {
     for identifier in preferredLanguages {
       guard let code = Locale.Language(identifier: identifier).languageCode?.identifier else {
@@ -68,7 +67,6 @@ struct AppLocalization: Sendable {
   var mapLabel: String { text("Map of pharmacies") }
   var mapAttribution: String { text("© OpenStreetMap contributors") }
 
-  // Origin search, location and map picking.
   var searchLabel: String { text("City or street address") }
   var searchButton: String { text("Search") }
   var searchPending: String { text("Searching…") }
@@ -94,7 +92,6 @@ struct AppLocalization: Sendable {
   var locationPending: String { text("Finding your location…") }
   var yourLocation: String { text("Your location") }
   var droppedPin: String { text("Dropped pin") }
-  /// A device fix or a chosen point labelled with the nearest street address.
   func nearAddress(_ address: String) -> String { text("Near \(address)") }
   var chooseOnMap: String { text("Choose on map") }
   var searchFromHere: String { text("Search from here") }
@@ -106,7 +103,6 @@ struct AppLocalization: Sendable {
   var returnToHelsinki: String { text("Return to Helsinki") }
   var borderNotice: String { text("Pharmacies across the border may be nearer but are not shown.") }
 
-  /// "No places in Finland match “{query}”…"
   func noMatches(_ query: String) -> String {
     text(
       "No places in Finland match “\(query)”. Check the spelling or choose a point on the map.")
@@ -136,23 +132,18 @@ struct AppLocalization: Sendable {
     return text("Mapped pharmacies in Finland · \(formatted)")
   }
 
-  /// The clock style for opening hours: "07:30" in English, "7.30" in Finnish.
   var clockStyle: OpeningHours.TimeRange.ClockStyle {
     language == .finnish ? .finnish : .english
   }
 
-  /// The name from the data, or "Unnamed pharmacy".
   func name(of pharmacy: Pharmacy) -> String {
     pharmacy.displayName ?? unnamedPharmacy
   }
 
-  /// A distance alone, for example "1.7 km", rounded by `DistanceFormatting` from PharmacyCore.
   func distance(meters: Double) -> String {
     DistanceFormatting.distance(meters: meters, locale: locale)
   }
 
-  /// A labeled straight-line distance, for example "1.7 km straight line". The distance is
-  /// rounded for display by `DistanceFormatting` from PharmacyCore, the same rule as the web app.
   func straightLineDistance(meters: Double) -> String {
     let distance = DistanceFormatting.distance(meters: meters, locale: locale)
     return String(localized: "\(distance) straight line", bundle: bundle, locale: locale)

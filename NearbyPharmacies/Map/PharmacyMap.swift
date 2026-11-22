@@ -2,22 +2,14 @@ import MapKit
 import PharmacyCore
 import SwiftUI
 
-/// The full-screen map: the origin marker, a pin per result and, for a selection, a dashed straight
-/// line from the origin to the selected pin. Pins are buttons that select their pharmacy.
-/// Touching and holding the map chooses a new starting point. "Choose on map" shows a target at
-/// the centre of the visible map; the user pans under it and confirms with "Search from here".
-/// Panning or zooming alone never offers a starting point.
 struct PharmacyMap: View {
   let finder: PharmacyFinder
   @Binding var position: MapCameraPosition
   /// The centre of the part of the map the sheet leaves visible, in the map's coordinates.
   var pickPoint: CGPoint
-  /// The status bar height: the map buttons sit below it.
   var topInset: CGFloat
   var onPick: (Coordinate) -> Void = { _ in }
-  /// Reports the visible map rect when the camera stops moving.
   var onCameraChange: (MKMapRect) -> Void = { _ in }
-  /// From "Choose on map" until "Search from here", "Cancel", a new origin or a selection.
   @State private var isPicking = false
   /// A touch and hold on a pin chooses the point, so the tap that ends it must not also select
   /// the pharmacy.
@@ -52,8 +44,6 @@ struct PharmacyMap: View {
     withAnimation(.snappy(duration: 0.25)) { isPicking = picking }
   }
 
-  /// One capsule at the top centre, below the status bar: "Choose on map" turns into
-  /// "Search from here", and a round Cancel button slides in beside it.
   private func pickControl(_ proxy: MapProxy) -> some View {
     let localization = finder.localization
     return HStack(spacing: Spacing.sm) {
@@ -98,7 +88,6 @@ struct PharmacyMap: View {
     .padding(.horizontal, Spacing.md)
   }
 
-  /// The target at the point "Search from here" uses.
   private var target: some View {
     Image(systemName: "plus.circle")
       .font(.title2.weight(.light))
@@ -122,7 +111,6 @@ struct PharmacyMap: View {
             Color.selectionLine, style: StrokeStyle(lineWidth: 3, lineCap: .round, dash: [7, 6]))
       }
 
-      // The origin draws above the pins next to it, and the selected pin above everything.
       ForEach(finder.results.filter { $0.id != finder.selectedID }) { result in
         pin(for: result, isSelected: false)
       }
@@ -207,7 +195,6 @@ extension Coordinate {
   }
 }
 
-/// Fits points into the part of the map the sheet leaves visible.
 enum MapFit {
   /// The map rect to show so that `coordinates` fit in the view area left inside `insets`.
   /// `viewSize` is the whole map view; the insets cover the status bar, the sheet and room for pins.
@@ -237,7 +224,6 @@ enum MapFit {
     let available = CGSize(
       width: max(1, viewSize.width - insets.leading - insets.trailing),
       height: max(1, viewSize.height - insets.top - insets.bottom))
-    // Map points per screen point.
     let scale = max((maxX - minX) / available.width, (maxY - minY) / available.height)
     let originX = (minX + maxX) / 2 - (insets.leading + available.width / 2) * scale
     let originY = (minY + maxY) / 2 - (insets.top + available.height / 2) * scale

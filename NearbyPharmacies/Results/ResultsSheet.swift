@@ -1,18 +1,11 @@
 import PharmacyCore
 import SwiftUI
 
-/// The content of the results sheet: the origin search and summary, notices and the list, or the
-/// details of the selection with "Back to results". VoiceOver reads the origin, the notices, then
-/// the results.
 struct ResultsSheet: View {
   let controller: OriginController
-  /// Reports whether the search field has focus, so the sheet can make room for the keyboard.
   var onSearchFocusChange: (Bool) -> Void = { _ in }
-  /// Reports the sheet height that shows only the search field: the closed detent.
   var onClosedHeightChange: (CGFloat) -> Void = { _ in }
-  /// Whether the sheet is at its closed detent, where a selection shows only its name and distance.
   var isClosed = false
-  /// Opens the closed sheet to show the details.
   var onOpen: () -> Void = {}
   @AccessibilityFocusState private var focus: FocusTarget?
   @FocusState private var searchFocused: Bool
@@ -45,7 +38,6 @@ struct ResultsSheet: View {
       if !searchFocused, controller.search == .idle { draft = "" }
       onSearchFocusChange(searchFocused)
     }
-    // A new starting point replaces any search text.
     .onChange(of: finder.originChangeCount) {
       draft = ""
       searchFocused = false
@@ -112,22 +104,18 @@ struct ResultsSheet: View {
       }
       .scrollBounceBehavior(.basedOnSize)
       .onAppear {
-        // Returning from the details: show and focus the selected row.
         guard let id = finder.selectedID else { return }
         proxy.scrollTo(id)
         focus = .row(id)
       }
       .onChange(of: finder.originChangeCount) {
-        // New results start from the top, below the origin.
         withAnimation { proxy.scrollTo(Self.topID, anchor: .top) }
       }
     }
   }
 
   private static let topID = "sheet.top"
-  /// Above the search field, below the drag indicator.
   static let topPadding = Spacing.xl
-  /// 28rem on web.
   private static let detailsMaxWidth: CGFloat = 448
 
   private var header: some View {
@@ -159,8 +147,6 @@ struct ResultsSheet: View {
 
   // MARK: - Details
 
-  /// The closed sheet has room for one line, so it shows only the selection, like its row.
-  /// Tapping it opens the sheet, where the details and "Back to results" return.
   private func closedSelection(_ selected: PharmacyResult) -> some View {
     Button(action: onOpen) {
       HStack(alignment: .center, spacing: Spacing.md) {
@@ -234,9 +220,6 @@ struct ResultsSheet: View {
   }
 }
 
-/// One result: a single button read as "{name}, {distance}" that exposes its selected state. The
-/// name wraps and is never truncated; the distance sits at the trailing edge, coloured by its band,
-/// as on web.
 struct ResultRow: View {
   let result: PharmacyResult
   let isSelected: Bool
@@ -278,7 +261,6 @@ struct ResultRow: View {
 }
 
 extension DistanceFormatting.Band {
-  /// The distance colour of a row or the closed sheet's selection, as on web.
   var color: Color {
     switch self {
     case .near: .distanceNear

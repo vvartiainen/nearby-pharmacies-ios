@@ -24,7 +24,6 @@ public enum OpeningHours {
     case raw(String)
   }
 
-  /// Interprets an OSM `opening_hours` value, or returns it as raw text when it cannot.
   public static func interpret(_ value: String) -> Interpreted {
     var week = [[TimeRange]](repeating: [], count: 7)
     var applied = false
@@ -103,7 +102,6 @@ public enum OpeningHours {
     return rules
   }
 
-  /// Adds a day or day range to the rule's selector; returns false for an invalid one ("PH-Fr").
   private static func addDays(to rule: inout Rule, day: String, dayEnd: String?) -> Bool {
     var days = rule.days ?? []
     defer { rule.days = days }
@@ -136,7 +134,6 @@ public enum OpeningHours {
     return total <= 24 * 60 ? total : nil
   }
 
-  /// Sorts a day's ranges and joins overlapping ones; ranges past midnight are kept as given.
   private static func mergeRanges(_ ranges: [TimeRange]) -> [TimeRange] {
     var merged: [TimeRange] = []
     for range in ranges.sorted(by: { $0.start < $1.start }) {
@@ -265,7 +262,6 @@ extension OpeningHours.TimeRange {
     case finnish
   }
 
-  /// "07:30–18:00" in English, "7.30–18.00" in Finnish.
   public func formatted(_ style: ClockStyle) -> String {
     "\(Self.clock(start, style))–\(Self.clock(end, style))"
   }

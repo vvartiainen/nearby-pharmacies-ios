@@ -1,7 +1,5 @@
 import XCTest
 
-/// Launches the app in each supported language and checks the default results from Helsinki
-/// Central Railway Station.
 final class LaunchSmokeTests: XCTestCase {
   override func setUp() {
     continueAfterFailure = false
@@ -56,7 +54,6 @@ final class LaunchSmokeTests: XCTestCase {
   }
 }
 
-/// Selecting rows and pins keeps the pin, the row and the details in sync.
 final class SelectionTests: XCTestCase {
   override func setUp() {
     continueAfterFailure = false
@@ -77,7 +74,6 @@ final class SelectionTests: XCTestCase {
     XCTAssertEqual(
       normalizingSpaces(app.staticTexts["details.distance"].label), "50 m straight line")
     XCTAssertEqual(app.staticTexts["details.address"].label, "Elielinaukio 3\n00100 Helsinki")
-    // The sheet keeps its detent: the details start where the list header was.
     let back = app.buttons["details.back"]
     XCTAssertEqual(back.label, "Back to results")
     XCTAssertEqual(back.frame.minY, sheetTop, accuracy: 40)
@@ -86,7 +82,6 @@ final class SelectionTests: XCTestCase {
     let pin = app.buttons[JourneyApp.pin(JourneyApp.steissin)]
     XCTAssertTrue(pin.isSelected)
     XCTAssertEqual(normalizingSpaces(pin.label), "Steissin Apteekki, 50 m straight line")
-    // The map centres the origin and the selected pin in the part above the sheet.
     sleep(1)
     let origin = app.descendants(matching: .any)["map.origin"].frame
     let visibleTop = app.windows.firstMatch.frame.minY + 60
@@ -96,7 +91,6 @@ final class SelectionTests: XCTestCase {
       (origin.midX + pin.frame.midX) / 2, app.windows.firstMatch.frame.midX, accuracy: 40)
     attachScreenshot(app, name: "Row selected (en)")
 
-    // Expanded, the details show the opening hours, Monday first.
     JourneyApp.expandSheet(app, topElement: app.buttons["details.back"])
     XCTAssertTrue(
       app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "07:30–18:00")).firstMatch
@@ -124,7 +118,6 @@ final class SelectionTests: XCTestCase {
     XCTAssertFalse(app.buttons[JourneyApp.row(JourneyApp.steissin)].isHittable)
     attachScreenshot(app, name: "Closed sheet (en)")
 
-    // A pin opens the closed sheet half way, like the web drawer.
     app.buttons[JourneyApp.pin(JourneyApp.kaarti)].tap()
     let name = app.staticTexts["details.name"]
     XCTAssertTrue(name.waitForExistence(timeout: 5))
@@ -133,7 +126,6 @@ final class SelectionTests: XCTestCase {
     XCTAssertEqual(
       XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: opened, object: nil)], timeout: 5),
       .completed, "The sheet opens to show the details")
-    // The details form a block centred in the sheet, with a shared left edge.
     let heading = app.staticTexts["details.hoursHeading"]
     XCTAssertEqual(name.frame.minX, heading.frame.minX, accuracy: 1)
     XCTAssertGreaterThan(name.frame.minX, 40, "Centred, not at the sheet's leading edge")
@@ -150,7 +142,6 @@ final class SelectionTests: XCTestCase {
     XCTAssertTrue(row.waitForExistence(timeout: 15))
     let mediumTop = field.frame.minY
 
-    // A selection from the full sheet brings it half way, so the map shows the pin.
     JourneyApp.expandSheet(app, topElement: field)
     row.tap()
     let back = app.buttons["details.back"]
@@ -162,7 +153,6 @@ final class SelectionTests: XCTestCase {
       .completed, "The sheet returns to the medium detent")
     XCTAssertTrue(app.buttons[JourneyApp.pin(JourneyApp.steissin)].isSelected)
 
-    // Closed, the sheet shows only the selection, without "Back to results".
     let summary = app.descendants(matching: .any)["details.summary"]
     JourneyApp.collapseSheet(app, topElement: summary, handle: app.staticTexts["details.name"])
     XCTAssertEqual(summary.label, "Steissin Apteekki, 50 m")
@@ -171,7 +161,6 @@ final class SelectionTests: XCTestCase {
     XCTAssertFalse(app.staticTexts["details.name"].exists)
     attachScreenshot(app, name: "Closed sheet with a selection (en)")
 
-    // Tapping the selection opens the sheet half way, with "Back to results".
     summary.tap()
     XCTAssertTrue(back.waitForExistence(timeout: 5))
     XCTAssertEqual(
@@ -199,7 +188,6 @@ final class SelectionTests: XCTestCase {
     XCTAssertTrue(app.buttons[JourneyApp.pin(JourneyApp.kaarti)].isSelected)
     attachScreenshot(app, name: "Pin selected (fi)")
 
-    // Selecting another pin replaces the details in place and keeps the detent.
     app.buttons[JourneyApp.pin(JourneyApp.steissin)].tap()
     XCTAssertTrue(
       app.staticTexts.containing(NSPredicate(format: "label == %@", "Steissin Apteekki")).firstMatch
@@ -213,7 +201,6 @@ final class SelectionTests: XCTestCase {
       app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "7.30–18.00")).firstMatch
         .exists)
 
-    // Choose Kaartin Apteekki again from its row in the expanded list.
     app.buttons["details.back"].tap()
     XCTAssertTrue(app.staticTexts["results.title"].waitForExistence(timeout: 5))
     JourneyApp.expandSheet(app, topElement: app.textFields["search.field"])
@@ -238,7 +225,6 @@ final class SelectionTests: XCTestCase {
   }
 }
 
-/// The results sheet at the largest accessibility text size.
 final class LargeTextTests: XCTestCase {
   override func setUp() {
     continueAfterFailure = false
@@ -344,7 +330,6 @@ enum JourneyApp {
     app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: x, dy: y))
   }
 
-  /// The first row of the results list.
   @MainActor
   static func firstRow(_ app: XCUIApplication) -> XCUIElement {
     app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'row.'")).firstMatch
@@ -356,7 +341,6 @@ enum JourneyApp {
     app.textFields["search.field"]
   }
 
-  /// The starting point the idle search field shows, for example "Dropped pin".
   @MainActor
   static func originText(_ app: XCUIApplication) -> String {
     searchField(app).value as? String ?? ""

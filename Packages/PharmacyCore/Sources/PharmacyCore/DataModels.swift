@@ -19,7 +19,6 @@ public struct Pharmacy: Hashable, Sendable, Codable, Identifiable, Rankable {
   /// Interior point for the map pin of an area; absent for nodes (use `lat` and `lon`).
   public var pin: Coordinate?
   public var address: PharmacyAddress?
-  /// Raw OSM `opening_hours`.
   public var openingHours: String?
   public var dispensing: String?
   public var phone: String?
@@ -79,7 +78,6 @@ public struct DataManifest: Hashable, Sendable, Codable {
     public var name: String
     public var attribution: String
     public var url: String
-    /// File name of the licence notice that ships with the data.
     public var notice: String
   }
 

@@ -13,7 +13,6 @@ public enum AddressIndex {
   public struct Address: Hashable, Sendable {
     /// Street or place name and house number, for example "Rautatienkatu 25".
     public let street: String
-    /// Municipality, possibly empty.
     public let city: String
 
     public init(street: String, city: String) {
@@ -57,7 +56,6 @@ public enum AddressIndex {
     "\(Int((lat * 2).rounded(.down)))-\(Int(lon.rounded(.down)))"
   }
 
-  /// The shards that can hold an address within `radiusMeters` of `point`.
   public static func cells(near point: Coordinate) -> Set<String> {
     let radiusDegrees = radiusMeters / Haversine.earthMeanRadiusMeters * (180 / .pi)
     let longitudeRadius = radiusDegrees / cos(point.lat * .pi / 180)
@@ -75,8 +73,6 @@ public enum AddressIndex {
     accuracy.isFinite && accuracy >= 0 && accuracy <= radiusMeters
   }
 
-  /// The closest address within `radiusMeters` of `point`, skipping addresses that `isOutside`
-  /// rejects (outside the bundled coverage).
   public static func nearest(
     to point: Coordinate, in shards: [Shard], isOutside: (Coordinate) -> Bool = { _ in false }
   ) -> Address? {
@@ -105,7 +101,6 @@ public enum AddressIndex {
     return address
   }
 
-  /// Decodes a shard file, gzip-compressed (`.json.gz`) or plain JSON.
   public static func decodeShard(_ data: Data) throws -> Shard {
     try JSONDecoder().decode(Shard.self, from: isGzip(data) ? gunzip(data) : data)
   }

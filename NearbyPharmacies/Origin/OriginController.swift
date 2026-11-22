@@ -2,16 +2,13 @@ import Foundation
 import Observation
 import PharmacyCore
 
-/// Chooses the starting point from a search, the device location or the map, and applies it to
-/// the finder. Only the newest request may publish a result: choosing any origin cancels the
-/// pending search and makes a late location fix or geocoder reply irrelevant.
+/// A late search or location response must not override a newer origin.
 @MainActor
 @Observable
 final class OriginController {
   enum SearchState: Hashable {
     case idle
     case pending
-    /// Matches to choose from. `local` when they come from the bundled place index.
     case matches([PlaceMatch], local: Bool)
     case empty(query: String)
     case unavailable
@@ -26,7 +23,6 @@ final class OriginController {
   let finder: PharmacyFinder
   private(set) var search: SearchState = .idle
   private(set) var location: LocationState = .idle
-  /// Whether the app still offers to use the device location, after the first results show.
   private(set) var offersLocation: Bool
 
   private let geocoder: any Geocoding
@@ -61,8 +57,6 @@ final class OriginController {
     defaults.set(true, forKey: Self.offerDismissedKey)
   }
 
-  /// Runs one geocoder request for the submitted text. The bundled place index answers city
-  /// searches when the geocoder fails or finds nothing. The origin stays until a match is chosen.
   func submitSearch(_ text: String) {
     let query = text.split(whereSeparator: \.isWhitespace).joined(separator: " ")
     guard !query.isEmpty, searchTask == nil else { return }
@@ -99,7 +93,6 @@ final class OriginController {
     searchTask = nil
   }
 
-  /// Closes the matches or the search message and ignores a pending reply.
   func cancelSearch() {
     searchTask?.cancel()
     searchTask = nil
@@ -110,7 +103,6 @@ final class OriginController {
     apply(.match(match))
   }
 
-  /// A point chosen on the map. The viewport stays where the user put it.
   func choosePoint(_ coordinate: Coordinate) {
     apply(Origin(kind: .pin, coordinate: coordinate), fitMap: false)
     lookUpAddress(near: coordinate, accuracy: 0)
@@ -120,8 +112,6 @@ final class OriginController {
     apply(.helsinkiCentral)
   }
 
-  /// Asks for the device location. A fix replaces the origin unless the user chose another one
-  /// while waiting.
   func requestLocation() {
     guard locationRequest == nil else { return }
     dismissLocationOffer()
@@ -143,8 +133,6 @@ final class OriginController {
     }
   }
 
-  /// Labels a device fix or a chosen point with a nearby street address from the bundled index,
-  /// as on web. A newer origin makes the answer irrelevant.
   private func lookUpAddress(near coordinate: Coordinate, accuracy: Double) {
     guard AddressIndex.accepts(accuracy: accuracy), finder.coverage != .outside else { return }
     let change = finder.originChangeCount

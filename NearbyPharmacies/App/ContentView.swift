@@ -2,7 +2,6 @@ import MapKit
 import SwiftUI
 import UIKit
 
-/// The full-screen map with the results sheet over it.
 struct ContentView: View {
   let controller: OriginController
   private var finder: PharmacyFinder { controller.finder }
@@ -12,20 +11,14 @@ struct ContentView: View {
       center: Origin.helsinkiCentral.coordinate.location,
       latitudinalMeters: 3_000, longitudinalMeters: 3_000))
   @State private var detent: PresentationDetent
-  /// Size of the full-screen map and the status bar height above it.
   @State private var mapSize: CGSize = .zero
   @State private var safeAreaTop: CGFloat = 0
-  /// Top edge of the sheet in screen coordinates, once it is laid out.
   @State private var sheetTop: CGFloat?
   @State private var didInitialFit = false
   @State private var didChooseInitialDetent = false
-  /// The detent before the search field took focus, restored when the search is done.
   @State private var detentBeforeSearch: PresentationDetent?
-  /// The closed detent shows only the search field; its height follows the field's.
   @State private var closedHeight: CGFloat = 110
-  /// A selection made while the sheet was closed opens it, then fits once it settles.
   @State private var fitsSelectionWhenSettled = false
-  /// A point chosen while the sheet was closed opens it, then moves into view once it settles.
   @State private var revealsOriginWhenSettled = false
   /// The map area in view when the camera last stopped, for keeping the zoom.
   @State private var visibleRect: MKMapRect?
@@ -38,8 +31,6 @@ struct ContentView: View {
 
   init(controller: OriginController) {
     self.controller = controller
-    // The sheet opens half way, with the map and the nearest results, or at the large detent on
-    // short screens at accessibility text sizes, so at least one full row shows.
     accessibilityTextSize =
       UIApplication.shared.preferredContentSizeCategory
       .isAccessibilityCategory
@@ -172,7 +163,6 @@ struct ContentView: View {
     detent = previous
   }
 
-  /// The centre of the map area above the sheet and below the status bar.
   private var pickPoint: CGPoint {
     CGPoint(
       x: mapSize.width / 2,
@@ -187,7 +177,6 @@ struct ContentView: View {
     }
   }
 
-  /// Fits the origin and the nearest results once the map and the sheet have their sizes.
   private func fitInitially() {
     guard !didInitialFit, let sheetTop, sheetTop > 0, mapSize.height > 0 else { return }
     didInitialFit = true
@@ -201,7 +190,6 @@ struct ContentView: View {
     fit(points, animated: animated)
   }
 
-  /// Fits the origin and the selected pin above the sheet.
   private func fitSelection() {
     guard let selected = finder.selected else { return }
     fit(
@@ -209,7 +197,6 @@ struct ContentView: View {
       animated: true)
   }
 
-  /// How much of the map the sheet covers from the bottom.
   private var coveredHeight: CGFloat {
     guard let sheetTop, mapSize.height > 0 else { return 0 }
     return max(0, mapSize.height - sheetTop)
@@ -249,7 +236,6 @@ struct ContentView: View {
 }
 
 extension OriginController {
-  /// Bundled data with the scripted services, which never leave the device.
   static func preview(language: String) -> OriginController {
     OriginController(
       finder: PharmacyFinder(

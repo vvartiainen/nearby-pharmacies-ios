@@ -37,7 +37,7 @@ outside-Finland and land-border notices.
 - Map fits (the first results, a new origin, a selection) frame the points inside the map's
   safe area, which the sheet already shortens through `safeAreaPadding`, so the sheet height is
   not subtracted twice.
-- UI tests launch with `-UITesting` and scripted answers (`ScriptedServices.swift`); the app
+- UI tests launch with `-UITesting` and scripted answers (`NearbyPharmacies/Testing/ScriptedServices.swift`); the app
   then never contacts the geocoder or Core Location.
 
 ## Layout
@@ -45,7 +45,11 @@ outside-Finland and land-border notices.
 | Path | Contents |
 | --- | --- |
 | `NearbyPharmacies.xcodeproj` | Project with the shared `NearbyPharmacies` scheme. Folders are synchronized groups, so new files under the three source folders join their target automatically. |
-| `NearbyPharmacies/` | App sources and `Localizable.xcstrings` (English and Finnish). `PharmacyFinder` holds the origin, results, coverage and selection; `OriginController` search, location and map picks, with the services in `OriginServices` and test doubles in `ScriptedServices`; `OriginSearch` the search field, messages, matches and coverage notices; `ContentView` the map, sheet detents and map fitting; `PharmacyMap`, `MapMarkers`, `ResultsSheet` and `PharmacyDetails` the views; `Theme` the design tokens. |
+| `NearbyPharmacies/App/` | SwiftUI entry point, `ContentView` for map and sheet coordination, and shared `PharmacyFinder` state. |
+| `NearbyPharmacies/Origin/` | Origin model, controller, search view, geocoding, Core Location and nearby-address lookup. |
+| `NearbyPharmacies/Map/`, `NearbyPharmacies/Results/` | Map and markers, results sheet, rows and details. |
+| `NearbyPharmacies/Shared/` | Theme and app localization. English and Finnish strings live in `NearbyPharmacies/Localizable.xcstrings`. |
+| `NearbyPharmacies/Testing/` | Scripted geocoding and location used by previews and UI tests. |
 | `NearbyPharmacies/Resources/Data/` | Synced from the web repo, never edited by hand: `pharmacies.fi.json`, `places.fi.json`, `coverage.fi.json`, `manifest.fi.json`, `ODbL-NOTICE.txt`. Bundled in the app. See [Pharmacy data](#pharmacy-data). |
 | `NearbyPharmacies/Resources/AddressIndex.bundle/` | The street address index (166 gzip shards and `index.json`, about 9.5 MB), synced from the web repo's `public/address-index/`, never edited by hand. |
 | `NearbyPharmaciesTests/` | Swift Testing unit tests, hosted in the app. |
@@ -57,6 +61,10 @@ outside-Finland and land-border notices.
 | `scripts/agent-stop-hook.sh` | Agent stop hook that checks changed Swift files. |
 | `.swift-format` | swift-format configuration (the tool's defaults, pinned). |
 | `.build/` | Ignored. All build output, results and screenshots from the commands below. |
+
+Group Swift files by feature within the app target. Keep platform-independent domain logic in
+`PharmacyCore`. Prefer clear names and structure over comments. Use comments for non-obvious
+reasons, constraints, or workarounds, and remove comments that restate the code.
 
 Requirements: Xcode 16 or later with an iOS 18 or later simulator runtime. The repo was
 set up and built with Xcode 27.2. Its only package is the local `Packages/PharmacyCore`;
