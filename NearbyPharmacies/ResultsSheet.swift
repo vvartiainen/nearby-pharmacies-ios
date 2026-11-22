@@ -29,7 +29,16 @@ struct ResultsSheet: View {
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     .background(Color.surfaceDefault)
-    .onChange(of: searchFocused) { onSearchFocusChange(searchFocused) }
+    .onChange(of: searchFocused) {
+      // Leaving the field without a search in progress shows the starting point again, as on web.
+      if !searchFocused, controller.search == .idle { draft = "" }
+      onSearchFocusChange(searchFocused)
+    }
+    // A new starting point replaces any search text.
+    .onChange(of: finder.originChangeCount) {
+      draft = ""
+      searchFocused = false
+    }
     .onChange(of: controller.isLocating) {
       if controller.isLocating {
         AccessibilityNotification.Announcement(finder.localization.locationPending).post()
@@ -104,37 +113,12 @@ struct ResultsSheet: View {
   private static let topID = "sheet.top"
 
   private var header: some View {
-    let localization = finder.localization
-    return VStack(alignment: .leading, spacing: Spacing.md) {
-      OriginSearch(controller: controller, draft: $draft, focus: $searchFocused)
-      HStack(alignment: .firstTextBaseline, spacing: Spacing.sm) {
-        Circle()
-          .fill(Color.originMarker)
-          .frame(width: 10, height: 10)
-          .accessibilityHidden(true)
-        VStack(alignment: .leading, spacing: 0) {
-          Text(localization.originCaption)
-            .font(.footnote)
-            .foregroundStyle(Color.textSecondary)
-          Text(finder.originTitle)
-            .font(.body.weight(.semibold))
-            .foregroundStyle(Color.textPrimary)
-            .accessibilityIdentifier("origin.label")
-          if let context = finder.originContext {
-            Text(context)
-              .font(.footnote)
-              .foregroundStyle(Color.textSecondary)
-          }
-        }
-      }
-      .accessibilityElement(children: .combine)
-      .accessibilityIdentifier("origin")
-    }
-    .id(Self.topID)
-    .fixedSize(horizontal: false, vertical: true)
-    // Like a navigation bar, the header stops growing at the largest standard size so the medium
-    // detent still shows a full result at accessibility sizes. Rows and details scale fully.
-    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+    OriginSearch(controller: controller, draft: $draft, focus: $searchFocused)
+      .id(Self.topID)
+      .fixedSize(horizontal: false, vertical: true)
+      // Like a navigation bar, the header stops growing at the largest standard size so the medium
+      // detent still shows a full result at accessibility sizes. Rows and details scale fully.
+      .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
   }
 
   private var resultsHeading: some View {

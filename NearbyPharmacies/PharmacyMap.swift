@@ -4,18 +4,19 @@ import SwiftUI
 
 /// The full-screen map: the origin marker, a pin per result and, for a selection, a dashed straight
 /// line from the origin to the selected pin. Pins are buttons that select their pharmacy.
-/// Touching and holding the map, or "Search from here" after panning or zooming, chooses a new
-/// starting point.
+/// Touching and holding the map chooses a new starting point. "Choose on map" shows a target at
+/// the centre of the visible map; the user pans under it and confirms with "Search from here".
+/// Panning or zooming alone never offers a starting point.
 struct PharmacyMap: View {
   let finder: PharmacyFinder
   @Binding var position: MapCameraPosition
   /// The centre of the part of the map the sheet leaves visible, in the map's coordinates.
   var pickPoint: CGPoint
-  /// The status bar height: "Search from here" sits below it.
+  /// The status bar height: the map buttons sit below it.
   var topInset: CGFloat
   var onPick: (Coordinate) -> Void = { _ in }
-  /// Shown after the user pans or zooms, until a new origin is chosen or the map refits.
-  @State private var showsSearchHere = false
+  /// From "Choose on map" until "Search from here", "Cancel", a new origin or a selection.
+  @State private var isPicking = false
   /// A touch and hold on a pin chooses the point, so the tap that ends it must not also select
   /// the pharmacy.
   @State private var lastPick: ContinuousClock.Instant?
@@ -24,13 +25,13 @@ struct PharmacyMap: View {
     MapReader { proxy in
       map
         .gesture(MapLongPress { point in pick(point, proxy) })
-        .onMapCameraChange(frequency: .onEnd) {
-          showsSearchHere = position.positionedByUser
-        }
-        .onChange(of: finder.originChangeCount) { showsSearchHere = false }
+        .onChange(of: finder.originChangeCount) { isPicking = false }
+        .onChange(of: finder.selectionCount) { isPicking = false }
         .overlay {
-          if showsSearchHere {
-            searchHere(proxy)
+          if isPicking {
+            picker(proxy)
+          } else {
+            chooseOnMap
           }
         }
         .accessibilityAction(named: finder.localization.searchFromHere) {
@@ -42,13 +43,35 @@ struct PharmacyMap: View {
 
   private func pick(_ point: CGPoint, _ proxy: MapProxy) {
     guard let coordinate = proxy.convert(point, from: .local) else { return }
-    showsSearchHere = false
+    isPicking = false
     lastPick = .now
     onPick(Coordinate(lat: coordinate.latitude, lon: coordinate.longitude))
   }
 
-  /// A target at the point "Search from here" uses, and the button below the status bar.
-  private func searchHere(_ proxy: MapProxy) -> some View {
+  /// Starts picking, below the status bar at the leading edge, clear of the compass.
+  private var chooseOnMap: some View {
+    Button {
+      isPicking = true
+    } label: {
+      Label(finder.localization.chooseOnMap, systemImage: "mappin.and.ellipse")
+        .font(.subheadline.weight(.semibold))
+        .padding(.horizontal, Spacing.md)
+        .frame(minHeight: minimumHitTarget)
+    }
+    .buttonStyle(.plain)
+    .foregroundStyle(Color.interactivePrimary)
+    .background(Color.surfaceDefault, in: .capsule)
+    .overlay(Capsule().strokeBorder(Color.borderStrong))
+    .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
+    .dynamicTypeSize(...DynamicTypeSize.accessibility1)
+    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    .padding(.top, topInset + Spacing.sm)
+    .padding(.leading, Spacing.md)
+    .accessibilityIdentifier("map.chooseOnMap")
+  }
+
+  /// A target at the point "Search from here" uses, and the buttons below the status bar.
+  private func picker(_ proxy: MapProxy) -> some View {
     ZStack {
       Image(systemName: "plus.circle")
         .font(.title2.weight(.light))
@@ -57,22 +80,35 @@ struct PharmacyMap: View {
         .position(pickPoint)
         .accessibilityHidden(true)
         .allowsHitTesting(false)
-      Button {
-        pick(pickPoint, proxy)
-      } label: {
-        Label(finder.localization.searchFromHere, systemImage: "scope")
-          .font(.subheadline.weight(.semibold))
-          .padding(.horizontal, Spacing.lg)
-          .frame(minHeight: minimumHitTarget)
+      HStack(spacing: Spacing.sm) {
+        Button {
+          pick(pickPoint, proxy)
+        } label: {
+          Label(finder.localization.searchFromHere, systemImage: "scope")
+            .padding(.horizontal, Spacing.lg)
+            .frame(minHeight: minimumHitTarget)
+        }
+        .foregroundStyle(Color.interactiveOnPrimary)
+        .background(Color.interactivePrimary, in: .capsule)
+        .accessibilityIdentifier("map.searchHere")
+        Button {
+          isPicking = false
+        } label: {
+          Text(finder.localization.cancelMapPick)
+            .padding(.horizontal, Spacing.md)
+            .frame(minHeight: minimumHitTarget)
+        }
+        .foregroundStyle(Color.interactivePrimary)
+        .background(Color.surfaceDefault, in: .capsule)
+        .overlay(Capsule().strokeBorder(Color.borderStrong))
+        .accessibilityIdentifier("map.cancelPick")
       }
       .buttonStyle(.plain)
-      .foregroundStyle(Color.interactiveOnPrimary)
-      .background(Color.interactivePrimary, in: .capsule)
+      .font(.subheadline.weight(.semibold))
       .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
       .dynamicTypeSize(...DynamicTypeSize.accessibility1)
       .frame(maxHeight: .infinity, alignment: .top)
       .padding(.top, topInset + Spacing.sm)
-      .accessibilityIdentifier("map.searchHere")
     }
   }
 
@@ -101,7 +137,9 @@ struct PharmacyMap: View {
           .frame(width: 2, height: 2)
           .overlay { OriginMarker().allowsHitTesting(false) }
           .accessibilityElement()
-          .accessibilityLabel("\(localization.originCaption): \(finder.originLabel)")
+          .accessibilityLabel(
+            Text(verbatim: "\(localization.originCaption): \(finder.originLabel)")
+          )
           .accessibilityIdentifier("map.origin")
       }
       .annotationTitles(.hidden)

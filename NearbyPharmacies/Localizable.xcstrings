@@ -69,6 +69,23 @@
         }
       }
     },
+    "Cancel" : {
+      "comment" : "Button that ends choosing a starting point on the map.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Peruuta"
+          }
+        }
+      }
+    },
     "Choose a match" : {
       "comment" : "Heading of the search matches.",
       "localizations" : {
@@ -82,6 +99,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Valitse osuma"
+          }
+        }
+      }
+    },
+    "Choose on map" : {
+      "comment" : "Button over the map that starts choosing a starting point at the map centre.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose on map"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Valitse kartalta"
           }
         }
       }
@@ -444,7 +478,7 @@
       }
     },
     "Search from here" : {
-      "comment" : "Button over the map that uses the map centre as the starting point.",
+      "comment" : "Button over the map that uses the target at the map centre as the starting point.",
       "localizations" : {
         "en" : {
           "stringUnit" : {

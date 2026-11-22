@@ -26,8 +26,10 @@ outside-Finland and land-border notices.
 - Location uses foreground Core Location (When In Use) with a 10 second timeout. The app offers
   it once after the first results; the system prompt follows only "Use location" or "Use my
   location". Choosing another origin while a request runs makes its fix irrelevant.
-- Touch and hold the map to choose a point. After panning or zooming, "Search from here" uses
-  the centre of the map above the sheet. VoiceOver users get the same as a map action.
+- Touch and hold the map to choose a point. Panning or zooming only moves the map. "Choose on
+  map" shows a target at the centre of the map above the sheet, with "Search from here" and
+  "Cancel"; a new origin or a selection also ends it. VoiceOver users get "Search from here" as
+  a map action.
 - Map fits (the first results, a new origin, a selection) frame the points inside the map's
   safe area, which the sheet already shortens through `safeAreaPadding`, so the sheet height is
   not subtracted twice.
@@ -89,8 +91,10 @@ xcrun simctl boot SIMULATOR_UDID
 ```
 
 `Unable to boot device in current state: Booted` means it is already running. To see
-the window, run `open -a Simulator`. Agent sandboxes block `open`, so ask the user to
-run it.
+the window, open the simulator app from Xcode → Open Developer Tool. Xcode 27 has no
+`Simulator.app`; its developer tools include `DeviceHub.app`
+(`open -a /Applications/Xcode.app/Contents/Applications/DeviceHub.app`). With older Xcode
+versions, run `open -a Simulator`. Agent sandboxes block `open`, so ask the user to run it.
 
 ```sh
 xcodebuild build -project NearbyPharmacies.xcodeproj -scheme NearbyPharmacies -destination 'platform=iOS Simulator,id=SIMULATOR_UDID' -derivedDataPath .build/DerivedData
@@ -109,8 +113,8 @@ xcrun simctl io SIMULATOR_UDID screenshot .build/screenshots/launch-fi.png
 ```
 
 The screenshot shows the map of central Helsinki with 20 pharmacy pins and the sheet at its
-smallest detent: the search field, the starting point, the title, the dataset count and the
-nearest result.
+smallest detent: the search field showing the starting point, the title, the dataset count
+and the nearest result.
 
 | Language | Title | Count | Starting point | Nearest result |
 | --- | --- | --- | --- | --- |
@@ -169,15 +173,15 @@ rm -rf .build/results/unit.xcresult && xcodebuild test -project NearbyPharmacies
 ```
 
 UI tests (XCUITest, about three minutes, each attaching screenshots): default results in
-English and Finnish; row selection with details, hours, the kept detent and the origin
-and pin centred above the sheet; pin selection with
-"Address unavailable" and "Hours unavailable" in Finnish; return to the list with the
-selection kept; the sheet at Accessibility XXXL text, which opens at the medium detent
-(large on screens shorter than 800 points, such as iPhone SE) with a full result visible; and
-origin selection with scripted answers: the location offer and a granted Tampere fix, denial,
-a timeout in Finnish, five "Kauppakatu 1" matches, an empty reply in Finnish, the bundled
-"Tammerfor" fallback, a map pick that wins over a late reply, "Search from here" that wins over
-a late fix, and Haparanda outside Finland with "Return to Helsinki":
+English and Finnish; row selection with details, hours, the kept detent and the origin and pin
+centred above the sheet; pin selection with "Address unavailable" and "Hours unavailable" in
+Finnish; return to the list with the selection kept; the sheet at Accessibility XXXL text,
+which opens at the medium detent (large on screens shorter than 800 points, such as iPhone SE)
+with a full result visible; and origin selection with scripted answers: the location offer and
+a granted Tampere fix, denial, a timeout in Finnish, five "Kauppakatu 1" matches, an empty
+reply in Finnish, the bundled "Tammerfor" fallback, a map pick that wins over a late reply,
+panning that leaves the origin alone, "Choose on map" with "Cancel" and then "Search from here"
+winning over a late fix, and Haparanda outside Finland with "Return to Helsinki":
 
 ```sh
 rm -rf .build/results/ui.xcresult && xcodebuild test -project NearbyPharmacies.xcodeproj -scheme NearbyPharmacies -destination 'platform=iOS Simulator,id=SIMULATOR_UDID' -derivedDataPath .build/DerivedData -resultBundlePath .build/results/ui.xcresult -only-testing:NearbyPharmaciesUITests

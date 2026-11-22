@@ -32,6 +32,19 @@ final class OriginJourneyTests: XCTestCase {
       "Expected label \(predicate) \(value), got \(element.label)", file: file, line: line)
   }
 
+  /// Waits until the idle search field shows `origin` as the starting point.
+  @MainActor
+  private func waitForOrigin(
+    _ app: XCUIApplication, _ origin: String, timeout: TimeInterval = 5,
+    file: StaticString = #filePath, line: UInt = #line
+  ) {
+    let shown = NSPredicate { _, _ in JourneyApp.originText(app) == origin }
+    XCTAssertEqual(
+      XCTWaiter.wait(
+        for: [XCTNSPredicateExpectation(predicate: shown, object: nil)], timeout: timeout),
+      .completed, "Expected \(origin), got \(JourneyApp.originText(app))", file: file, line: line)
+  }
+
   @MainActor
   func testOfferAfterResultsThenGrantedLocationReranksFromTampere() {
     let app = JourneyApp.launch(
@@ -49,7 +62,7 @@ final class OriginJourneyTests: XCTestCase {
     offer.buttons["Use location"].tap()
 
     waitForLabel(first, "BEGINSWITH", "Tullintorin apteekki")
-    XCTAssertTrue(JourneyApp.origin(app).label.hasSuffix("Your location"))
+    XCTAssertEqual(JourneyApp.originText(app), "Your location")
     attachScreenshot(app, name: "Ranked from the device location (en)")
 
     // Pins and rows stay in sync for the new results.
@@ -72,8 +85,7 @@ final class OriginJourneyTests: XCTestCase {
     let message = app.staticTexts["origin.message"]
     XCTAssertTrue(message.waitForExistence(timeout: 5))
     XCTAssertTrue(message.label.hasPrefix("Location permission was denied."))
-    XCTAssertTrue(
-      JourneyApp.origin(app).label.hasSuffix("Helsinki Central Railway Station (default)"))
+    XCTAssertEqual(JourneyApp.originText(app), "Helsinki Central Railway Station (default)")
     waitForLabel(JourneyApp.firstRow(app), "BEGINSWITH", "Steissin Apteekki")
     attachScreenshot(app, name: "Location denied (en)")
   }
@@ -89,7 +101,7 @@ final class OriginJourneyTests: XCTestCase {
     let message = app.staticTexts["origin.message"]
     XCTAssertTrue(message.waitForExistence(timeout: 5))
     XCTAssertTrue(message.label.hasPrefix("Sijainnin haku kesti liian kauan."))
-    XCTAssertTrue(JourneyApp.origin(app).label.hasSuffix("Helsingin päärautatieasema (oletus)"))
+    XCTAssertEqual(JourneyApp.originText(app), "Helsingin päärautatieasema (oletus)")
   }
 
   @MainActor
@@ -99,9 +111,10 @@ final class OriginJourneyTests: XCTestCase {
       environment: ["UITEST_GEOCODER": "fixture", "UITEST_GEOCODER_RESPONSE": Self.kauppakatu])
     let field = app.textFields["search.field"]
     XCTAssertTrue(field.waitForExistence(timeout: 15))
-    XCTAssertEqual(field.placeholderValue, "City or street address")
+    XCTAssertEqual(JourneyApp.originText(app), "Helsinki Central Railway Station (default)")
     let peekTop = field.frame.minY
     field.tap()
+    XCTAssertEqual(field.placeholderValue, "City or street address")
     field.typeText("Kauppakatu 1")
     XCTAssertTrue(app.staticTexts["search.privacy"].exists)
     XCTAssertEqual(
@@ -120,9 +133,8 @@ final class OriginJourneyTests: XCTestCase {
 
     app.buttons["match.0"].tap()
     XCTAssertFalse(app.buttons["match.0"].waitForExistence(timeout: 1))
-    let origin = JourneyApp.origin(app)
-    XCTAssertTrue(origin.label.contains("Kauppakatu 1"))
-    XCTAssertTrue(origin.label.contains("Tampere, Finland"))
+    XCTAssertEqual(JourneyApp.originText(app), "Kauppakatu 1 · Tampere, Finland")
+    XCTAssertEqual(app.staticTexts["search.origin"].exists, false, "The summary is not read twice")
     waitForLabel(JourneyApp.firstRow(app), "BEGINSWITH", "Yliopiston Apteekki")
     // The sheet returns to the detent it had before the search.
     let returned = NSPredicate { _, _ in abs(field.frame.minY - peekTop) < 40 }
@@ -148,7 +160,11 @@ final class OriginJourneyTests: XCTestCase {
       message.label,
       "Hakusanalla ”Kuvitteellinen 123” ei löytynyt paikkoja Suomesta. Tarkista kirjoitusasu tai valitse kohta kartalta."
     )
-    XCTAssertTrue(JourneyApp.origin(app).label.hasSuffix("Helsingin päärautatieasema (oletus)"))
+    // The field keeps the text for a correction; the origin stays.
+    XCTAssertEqual(JourneyApp.originText(app), "Kuvitteellinen 123")
+    XCTAssertEqual(
+      app.descendants(matching: .any)["map.origin"].label,
+      "Lähtöpiste: Helsingin päärautatieasema (oletus)")
     attachScreenshot(app, name: "No matches (fi)")
   }
 
@@ -166,7 +182,7 @@ final class OriginJourneyTests: XCTestCase {
     XCTAssertEqual(app.buttons["match.0"].label, "Tampere · Finland")
     attachScreenshot(app, name: "Bundled place matches (en)")
     app.buttons["match.0"].tap()
-    XCTAssertTrue(JourneyApp.origin(app).label.contains("Tampere"))
+    waitForOrigin(app, "Tampere · Finland")
 
     // An address still needs the online service.
     field.tap()
@@ -193,7 +209,7 @@ final class OriginJourneyTests: XCTestCase {
 
     JourneyApp.collapseSheet(app, topElement: field)
     JourneyApp.mapPoint(app).press(forDuration: 1)
-    waitForLabel(JourneyApp.origin(app), "ENDSWITH", "Dropped pin")
+    waitForOrigin(app, "Dropped pin")
     XCTAssertTrue(app.descendants(matching: .any)["map.origin"].label.hasSuffix("Dropped pin"))
     XCTAssertFalse(app.staticTexts["details.name"].exists, "A touch and hold does not select a pin")
     let reranked = JourneyApp.firstRow(app).label
@@ -201,35 +217,50 @@ final class OriginJourneyTests: XCTestCase {
     // The reply arrives after the pick and is ignored.
     sleep(5)
     XCTAssertFalse(app.staticTexts["matches.heading"].exists)
-    XCTAssertTrue(JourneyApp.origin(app).label.hasSuffix("Dropped pin"))
+    XCTAssertEqual(JourneyApp.originText(app), "Dropped pin")
     XCTAssertEqual(JourneyApp.firstRow(app).label, reranked)
     attachScreenshot(app, name: "Dropped pin after a late reply (en)")
   }
 
   @MainActor
-  func testSearchFromHereWinsOverALateLocationFixInFinnish() {
+  func testChooseOnMapWinsOverALateLocationFixInFinnish() {
     let app = JourneyApp.launch(
       language: "fi", locale: "fi_FI",
-      environment: ["UITEST_LOCATION": Self.tampere, "UITEST_LOCATION_DELAY": "4"])
+      environment: ["UITEST_LOCATION": Self.tampere, "UITEST_LOCATION_DELAY": "8"])
     let location = app.buttons["search.location"]
     XCTAssertTrue(location.waitForExistence(timeout: 15))
     location.tap()
     XCTAssertFalse(location.isEnabled, "Busy while locating")
 
-    // Panning shows "Search from here", which picks the centre of the visible map.
+    // Panning alone only moves the map.
     let searchHere = app.buttons["map.searchHere"]
-    XCTAssertFalse(searchHere.exists)
+    let chooseOnMap = app.buttons["map.chooseOnMap"]
+    XCTAssertEqual(chooseOnMap.label, "Valitse kartalta")
     JourneyApp.mapPoint(app, y: 0.35).press(
       forDuration: 0.05, thenDragTo: JourneyApp.mapPoint(app, x: 0.3, y: 0.2))
+    XCTAssertFalse(searchHere.waitForExistence(timeout: 1))
+
+    // "Choose on map" shows the target with "Search from here" and "Cancel".
+    chooseOnMap.tap()
     XCTAssertTrue(searchHere.waitForExistence(timeout: 5))
     XCTAssertEqual(searchHere.label, "Hae tästä kohdasta")
-    attachScreenshot(app, name: "Search from here (fi)")
-    searchHere.tap()
-    waitForLabel(JourneyApp.origin(app), "ENDSWITH", "Kartalta valittu kohta")
+    let cancel = app.buttons["map.cancelPick"]
+    XCTAssertEqual(cancel.label, "Peruuta")
+    cancel.tap()
+    XCTAssertTrue(chooseOnMap.waitForExistence(timeout: 5))
     XCTAssertFalse(searchHere.exists)
 
-    sleep(5)
-    XCTAssertTrue(JourneyApp.origin(app).label.hasSuffix("Kartalta valittu kohta"))
+    chooseOnMap.tap()
+    JourneyApp.mapPoint(app, x: 0.3, y: 0.2).press(
+      forDuration: 0.05, thenDragTo: JourneyApp.mapPoint(app, y: 0.35))
+    XCTAssertTrue(searchHere.waitForExistence(timeout: 5))
+    attachScreenshot(app, name: "Choose on map (fi)")
+    searchHere.tap()
+    waitForOrigin(app, "Kartalta valittu kohta")
+    XCTAssertFalse(searchHere.exists)
+
+    sleep(8)
+    XCTAssertEqual(JourneyApp.originText(app), "Kartalta valittu kohta")
     XCTAssertTrue(location.isEnabled)
   }
 
@@ -250,8 +281,7 @@ final class OriginJourneyTests: XCTestCase {
 
     app.buttons["notice.returnToHelsinki"].tap()
     waitForLabel(JourneyApp.firstRow(app), "BEGINSWITH", "Steissin Apteekki")
-    XCTAssertTrue(
-      JourneyApp.origin(app).label.hasSuffix("Helsinki Central Railway Station (default)"))
+    XCTAssertEqual(JourneyApp.originText(app), "Helsinki Central Railway Station (default)")
     XCTAssertFalse(notice.exists)
   }
 }

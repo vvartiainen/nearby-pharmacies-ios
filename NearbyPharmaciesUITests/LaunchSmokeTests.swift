@@ -43,8 +43,7 @@ final class LaunchSmokeTests: XCTestCase {
     XCTAssertEqual(titleElement.label, title, file: file, line: line)
     XCTAssertEqual(
       normalizingSpaces(app.staticTexts["results.scope"].label), scope, file: file, line: line)
-    XCTAssertTrue(
-      app.descendants(matching: .any)["origin"].label.hasSuffix(origin), file: file, line: line)
+    XCTAssertEqual(JourneyApp.originText(app), origin, file: file, line: line)
 
     let first = app.buttons[JourneyApp.row(JourneyApp.steissin)]
     XCTAssertTrue(
@@ -246,9 +245,9 @@ enum JourneyApp {
     return app
   }
 
-  /// Drags the sheet down by the starting point summary until `topElement` is in the lower half
-  /// of the screen. The summary is plain text, and the list is scrolled to the top, so the drag
-  /// resizes the sheet. The grabber can sit under the status bar on short screens.
+  /// Drags the sheet down by the results title until `topElement` is in the lower half of the
+  /// screen. The title is plain text, and the list is scrolled to the top, so the drag resizes
+  /// the sheet. The grabber can sit under the status bar on short screens.
   @MainActor
   static func collapseSheet(
     _ app: XCUIApplication, topElement: XCUIElement, file: StaticString = #filePath,
@@ -256,7 +255,7 @@ enum JourneyApp {
   ) {
     let window = app.windows.firstMatch
     let bottom = window.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.97))
-    origin(app).coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+    app.staticTexts["results.title"].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
       .press(forDuration: 0.1, thenDragTo: bottom, withVelocity: .slow, thenHoldForDuration: 0.2)
     let collapsed = NSPredicate { _, _ in topElement.frame.minY > window.frame.height * 0.5 }
     XCTAssertEqual(
@@ -279,10 +278,16 @@ enum JourneyApp {
     app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'row.'")).firstMatch
   }
 
-  /// The combined "Starting point" summary in the sheet.
+  /// The search field, which shows the starting point while it is idle.
   @MainActor
-  static func origin(_ app: XCUIApplication) -> XCUIElement {
-    app.descendants(matching: .any)["origin"]
+  static func searchField(_ app: XCUIApplication) -> XCUIElement {
+    app.textFields["search.field"]
+  }
+
+  /// The starting point the idle search field shows, for example "Dropped pin".
+  @MainActor
+  static func originText(_ app: XCUIApplication) -> String {
+    searchField(app).value as? String ?? ""
   }
 }
 

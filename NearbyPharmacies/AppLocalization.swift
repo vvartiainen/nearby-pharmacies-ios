@@ -94,7 +94,9 @@ struct AppLocalization: Sendable {
   var locationPending: String { text("Finding your location…") }
   var yourLocation: String { text("Your location") }
   var droppedPin: String { text("Dropped pin") }
+  var chooseOnMap: String { text("Choose on map") }
   var searchFromHere: String { text("Search from here") }
+  var cancelMapPick: String { text("Cancel") }
   var mapPickHint: String { text("Touch and hold the map to choose a starting point.") }
   var outsideFinland: String {
     text("This starting point is outside Finland. Only pharmacies in Finland are shown.")

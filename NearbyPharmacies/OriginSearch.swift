@@ -35,18 +35,54 @@ struct OriginSearch: View {
     }
   }
 
+  /// Idle, the field shows the active starting point, as on web: the address or name above a
+  /// smaller locality line. Editing replaces it with the search text.
+  private var showsOrigin: Bool { !focus.wrappedValue && draft.isEmpty }
+
   private var field: some View {
-    HStack(spacing: Spacing.xs) {
+    let finder = controller.finder
+    return HStack(spacing: Spacing.xs) {
       Image(systemName: "magnifyingglass")
         .foregroundStyle(Color.textSecondary)
         .accessibilityHidden(true)
-      TextField(localization.searchLabel, text: $draft)
+      ZStack(alignment: .leading) {
+        TextField(
+          localization.searchLabel, text: $draft,
+          prompt: showsOrigin ? Text(verbatim: "") : Text(localization.searchLabel)
+        )
         .focused(focus)
         .submitLabel(.search)
         .onSubmit(submit)
         .autocorrectionDisabled()
         .foregroundStyle(Color.textPrimary)
+        // VoiceOver reads the field's label, then the starting point it shows.
+        .accessibilityValue(showsOrigin ? finder.originLabel : draft)
         .accessibilityIdentifier("search.field")
+        if showsOrigin {
+          VStack(alignment: .leading, spacing: 0) {
+            // Two lines at most, so the peek detent still shows the nearest result on narrow
+            // screens. The full label stays available to VoiceOver through the field's value.
+            Text(finder.originTitle)
+              .font(.body)
+              .foregroundStyle(Color.textPrimary)
+              .lineLimit(2)
+              .minimumScaleFactor(0.85)
+            if let context = finder.originContext {
+              Text(context)
+                .font(.footnote)
+                .lineLimit(1)
+                .foregroundStyle(Color.textSecondary)
+            }
+          }
+          .fixedSize(horizontal: false, vertical: true)
+          .frame(maxWidth: .infinity, alignment: .leading)
+          .background(Color.pageBackground)
+          .accessibilityHidden(true)
+          .allowsHitTesting(false)
+          .accessibilityIdentifier("search.origin")
+        }
+      }
+      .padding(.vertical, Spacing.sm)
       locationButton
     }
     .padding(.leading, Spacing.md)
@@ -56,6 +92,9 @@ struct OriginSearch: View {
       RoundedRectangle(cornerRadius: Radius.md)
         .strokeBorder(focus.wrappedValue ? Color.focusRing : Color.borderSubtle)
     }
+    // The summary can be taller than the text line, so the whole field focuses the text.
+    .contentShape(.rect(cornerRadius: Radius.md))
+    .onTapGesture { focus.wrappedValue = true }
   }
 
   private var locationButton: some View {

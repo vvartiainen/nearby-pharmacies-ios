@@ -178,8 +178,8 @@ private struct PeekDetent: CustomPresentationDetent {
     let category = UIContentSizeCategory(context.dynamicTypeSize)
     let traits = UITraitCollection(preferredContentSizeCategory: category)
     // Top padding, the search field and spacing do not scale; the text lines do.
-    let fixed: CGFloat = 24 + 44 + 12 + 12 + 16 + 24 + 8
-    let text = UIFontMetrics.default.scaledValue(for: 112, compatibleWith: traits)
+    let fixed: CGFloat = 24 + 44 + 16 + 24 + 8
+    let text = UIFontMetrics.default.scaledValue(for: 100, compatibleWith: traits)
     return min(fixed + text, context.maxDetentValue * 0.6)
   }
 }
