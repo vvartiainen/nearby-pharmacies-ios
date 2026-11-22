@@ -1,23 +1,25 @@
 # Nearby Pharmacies iOS
 
-A native SwiftUI app that will find the nearest mapped pharmacy in Finland. Product
-decisions live in the planning documents outside this repository. This repository has
-the runnable skeleton, the bundled pharmacy snapshot and the ranking logic. The app shows
-one localized screen: a heading, a caption saying the distance is an illustrative example,
-and a fixed 1 700 m straight-line distance ("1.7 km straight line"), the same sample as the
-web app. The ranking is not wired to the UI yet, and there is no map, location or geocoding.
+A native SwiftUI app that finds the nearest mapped pharmacies in Finland. Product
+decisions live in the planning documents outside this repository; the shared design spec is
+`docs/design/design-spec.md`. The app shows a full-screen MapKit map with a native results
+sheet. It ranks the bundled snapshot from the labeled default origin, Helsinki Central
+Railway Station, and shows the 20 nearest. The origin marker, pins, rows and details stay in
+sync: selecting a row or a pin selects both, draws a dashed line from the origin and shows
+the name, distance, address and opening hours (or their fallbacks) in the sheet, which keeps
+its detent. There is no location, search or map picking yet.
 
 ## Layout
 
 | Path | Contents |
 | --- | --- |
 | `NearbyPharmacies.xcodeproj` | Project with the shared `NearbyPharmacies` scheme. Folders are synchronized groups, so new files under the three source folders join their target automatically. |
-| `NearbyPharmacies/` | App sources and `Localizable.xcstrings` (English and Finnish). |
+| `NearbyPharmacies/` | App sources and `Localizable.xcstrings` (English and Finnish). `PharmacyFinder` holds the origin, results and selection; `ContentView` the map, sheet detents and map fitting; `PharmacyMap`, `MapMarkers`, `ResultsSheet` and `PharmacyDetails` the views; `Theme` the design tokens. |
 | `NearbyPharmacies/Resources/Data/` | Synced from the web repo, never edited by hand: `pharmacies.fi.json`, `places.fi.json`, `manifest.fi.json`, `ODbL-NOTICE.txt`. Bundled in the app. See [Pharmacy data](#pharmacy-data). |
 | `NearbyPharmaciesTests/` | Swift Testing unit tests, hosted in the app. |
 | `NearbyPharmaciesTests/Fixtures/ranking-v1.json` | Shared ranking fixture, synced from the web repo. Never edit by hand. |
-| `Packages/PharmacyCore/` | Local Swift package (iOS and macOS): haversine distance, ranking, distance display rounding, data models and the bundle loader. The app target links it. Its tests run on the Mac. |
-| `NearbyPharmaciesUITests/` | XCUITest launch smoke tests in English and Finnish. |
+| `Packages/PharmacyCore/` | Local Swift package (iOS and macOS): haversine distance, ranking, distance display rounding, the `opening_hours` interpreter (the same rules as the web app), address lines, data models and the bundle loader. The app target links it. Its tests run on the Mac. |
+| `NearbyPharmaciesUITests/` | XCUITest journeys: default results in English and Finnish, row and pin selection, missing address and hours, and the sheet at an accessibility text size. |
 | `scripts/style.sh` | swift-format check and format commands. |
 | `scripts/agent-stop-hook.sh` | Agent stop hook that checks changed Swift files. |
 | `.swift-format` | swift-format configuration (the tool's defaults, pinned). |
@@ -81,13 +83,17 @@ mkdir -p .build/screenshots
 xcrun simctl io SIMULATOR_UDID screenshot .build/screenshots/launch-fi.png
 ```
 
-The screenshot shows a large bold heading at the top left, a secondary caption
-and a larger distance line.
+The screenshot shows the map of central Helsinki with 20 pharmacy pins and the sheet at its
+smallest detent: the title, the dataset count, the starting point and the nearest result.
 
-| Language | Heading | Caption | Distance |
-| --- | --- | --- | --- |
-| Finnish (`fi_FI`) | Lähin apteekki | Havainnollistava esimerkkietäisyys | 1,7 km linnuntietä |
-| English (`en_GB`) | Nearest pharmacy | Illustrative example distance | 1.7 km straight line |
+| Language | Title | Count | Starting point | Nearest result |
+| --- | --- | --- | --- | --- |
+| Finnish (`fi_FI`) | Lähimmät apteekit | Kartoitetut apteekit Suomessa · 784 | Helsingin päärautatieasema (oletus) | Steissin Apteekki, 50 m linnuntietä |
+| English (`en_GB`) | Nearest pharmacies | Mapped pharmacies in Finland · 784 | Helsinki Central Railway Station (default) | Steissin Apteekki, 50 m straight line |
+
+To try large text, add `-UIPreferredContentSizeCategoryName UICTContentSizeCategoryAccessibilityXXXL`
+to the launch command. For dark appearance, run `xcrun simctl ui SIMULATOR_UDID appearance dark`
+(and `light` to restore it).
 
 ## Tests
 
@@ -100,13 +106,15 @@ the bundled data. They need no simulator:
 swift test --package-path Packages/PharmacyCore
 ```
 
-Expected last line: `Test run with 26 tests in 5 suites passed`. They check every origin of
+Expected last line: `Test run with 33 tests in 7 suites passed`. They check every origin of
 the shared fixture (order, distances within its tolerance, English and Finnish labels), all
 19 display-rounding cases, the zero distance, the exact three-way tie, two distances with the
 same label, decoding of records without name, address or hours, the bundled snapshot and place
 index against the manifest's counts, and the SHA-256 of each data file against the
-manifest. Fixture labels are compared after its `labelComparison` rule (U+00A0 and U+202F
-become spaces). A separate test pins the exact characters, which match the web app's `Intl`
+manifest. They also run the web app's `opening_hours` cases and check that the snapshot
+interprets the same 613 of 623 values, plus address lines, name trimming and pin points.
+Fixture labels are compared after its `labelComparison` rule (U+00A0 and U+202F become
+spaces). A separate test pins the exact characters, which match the web app's `Intl`
 output: Finnish groups with U+00A0 ("1 234 km"), and both languages put U+0020 before the
 unit.
 
@@ -120,15 +128,19 @@ xcodebuild refuses to overwrite a result bundle, so each command deletes its old
 first.
 
 Unit tests (Swift Testing: language selection, English fallback, the locale passed to the
-distance formatter, the string catalog against every fixture label, and the data files in the
-app bundle):
+distance formatter, the string catalog against every fixture label and the journey strings,
+the data files in the app bundle, the default ranking and selection in `PharmacyFinder`, and
+the map fit above the sheet):
 
 ```sh
 rm -rf .build/results/unit.xcresult && xcodebuild test -project NearbyPharmacies.xcodeproj -scheme NearbyPharmacies -destination 'platform=iOS Simulator,id=SIMULATOR_UDID' -derivedDataPath .build/DerivedData -resultBundlePath .build/results/unit.xcresult -only-testing:NearbyPharmaciesTests
 ```
 
-UI tests (XCUITest launch smoke tests in English and Finnish, each attaching a
-screenshot):
+UI tests (XCUITest, about a minute, each attaching screenshots): default results in English
+and Finnish; row selection with details, hours and the kept detent; pin selection with
+"Address unavailable" and "Hours unavailable" in Finnish; return to the list with the
+selection kept; and the sheet at Accessibility XXXL text, which opens at the medium detent
+(large on screens shorter than 800 points, such as iPhone SE) with a full result visible:
 
 ```sh
 rm -rf .build/results/ui.xcresult && xcodebuild test -project NearbyPharmacies.xcodeproj -scheme NearbyPharmacies -destination 'platform=iOS Simulator,id=SIMULATOR_UDID' -derivedDataPath .build/DerivedData -resultBundlePath .build/results/ui.xcresult -only-testing:NearbyPharmaciesUITests

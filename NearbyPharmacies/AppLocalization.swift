@@ -51,12 +51,47 @@ struct AppLocalization: Sendable {
     return Locale(components: components)
   }
 
-  var heading: String {
-    String(localized: "Nearest pharmacy", bundle: bundle, locale: locale)
+  private func text(_ key: String.LocalizationValue) -> String {
+    String(localized: key, bundle: bundle, locale: locale)
   }
 
-  var illustrativeNote: String {
-    String(localized: "Illustrative example distance", bundle: bundle, locale: locale)
+  var resultsTitle: String { text("Nearest pharmacies") }
+  var originCaption: String { text("Starting point") }
+  var defaultOrigin: String { text("Helsinki Central Railway Station (default)") }
+  var addressUnavailable: String { text("Address unavailable") }
+  var unnamedPharmacy: String { text("Unnamed pharmacy") }
+  var hoursHeading: String { text("Opening hours") }
+  var hoursUnavailable: String { text("Hours unavailable") }
+  var closed: String { text("Closed") }
+  var backToResults: String { text("Back to results") }
+  var detailsLabel: String { text("Pharmacy details") }
+  var mapLabel: String { text("Map of pharmacies") }
+  var mapAttribution: String { text("© OpenStreetMap contributors") }
+
+  /// Short weekday names, Monday first: "Mon" … "Sun" or "ma" … "su".
+  var weekdays: [String] {
+    text("Mon Tue Wed Thu Fri Sat Sun").split(separator: " ").map(String.init)
+  }
+
+  /// "Mapped pharmacies in Finland · 784", with the count in the active locale's digits.
+  func scopeAndCount(_ count: Int) -> String {
+    let formatted = count.formatted(.number.locale(locale))
+    return text("Mapped pharmacies in Finland · \(formatted)")
+  }
+
+  /// The clock style for opening hours: "07:30" in English, "7.30" in Finnish.
+  var clockStyle: OpeningHours.TimeRange.ClockStyle {
+    language == .finnish ? .finnish : .english
+  }
+
+  /// The name from the data, or "Unnamed pharmacy".
+  func name(of pharmacy: Pharmacy) -> String {
+    pharmacy.displayName ?? unnamedPharmacy
+  }
+
+  /// A distance alone, for example "1.7 km", rounded by `DistanceFormatting` from PharmacyCore.
+  func distance(meters: Double) -> String {
+    DistanceFormatting.distance(meters: meters, locale: locale)
   }
 
   /// A labeled straight-line distance, for example "1.7 km straight line". The distance is

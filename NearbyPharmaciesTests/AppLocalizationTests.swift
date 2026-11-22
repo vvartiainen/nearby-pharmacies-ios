@@ -71,8 +71,12 @@ struct LocalizedStringTests {
   @Test func englishStrings() {
     let localization = AppLocalization(preferredLanguages: ["en-GB"], region: .unitedKingdom)
     #expect(localization.language == .english)
-    #expect(localization.heading == "Nearest pharmacy")
-    #expect(localization.illustrativeNote == "Illustrative example distance")
+    #expect(localization.resultsTitle == "Nearest pharmacies")
+    #expect(localization.defaultOrigin == "Helsinki Central Railway Station (default)")
+    #expect(localization.scopeAndCount(784) == "Mapped pharmacies in Finland · 784")
+    #expect(localization.weekdays == ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"])
+    #expect(localization.hoursUnavailable == "Hours unavailable")
+    #expect(localization.addressUnavailable == "Address unavailable")
     #expect(
       normalizingSpaces(localization.straightLineDistance(meters: 1_700)) == "1.7 km straight line")
   }
@@ -80,8 +84,14 @@ struct LocalizedStringTests {
   @Test func finnishStrings() {
     let localization = AppLocalization(preferredLanguages: ["fi-FI"], region: .finland)
     #expect(localization.language == .finnish)
-    #expect(localization.heading == "Lähin apteekki")
-    #expect(localization.illustrativeNote == "Havainnollistava esimerkkietäisyys")
+    #expect(localization.resultsTitle == "Lähimmät apteekit")
+    #expect(localization.defaultOrigin == "Helsingin päärautatieasema (oletus)")
+    #expect(
+      normalizingSpaces(localization.scopeAndCount(1_234))
+        == "Kartoitetut apteekit Suomessa · 1 234")
+    #expect(localization.weekdays == ["ma", "ti", "ke", "to", "pe", "la", "su"])
+    #expect(localization.hoursUnavailable == "Aukioloajat eivät saatavilla")
+    #expect(localization.addressUnavailable == "Osoite ei saatavilla")
     #expect(
       normalizingSpaces(localization.straightLineDistance(meters: 1_700)) == "1,7 km linnuntietä")
   }
@@ -89,7 +99,7 @@ struct LocalizedStringTests {
   @Test func unsupportedLanguageUsesEnglishStrings() {
     let localization = AppLocalization(preferredLanguages: ["sv-SE"], region: .sweden)
     #expect(localization.language == .english)
-    #expect(localization.heading == "Nearest pharmacy")
+    #expect(localization.resultsTitle == "Nearest pharmacies")
   }
 }
 

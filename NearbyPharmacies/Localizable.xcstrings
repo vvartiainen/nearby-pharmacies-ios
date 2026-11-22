@@ -18,36 +18,240 @@
         }
       }
     },
-    "Illustrative example distance" : {
-      "comment" : "Caption explaining that the distance shown is a sample, not a real result.",
+    "Address unavailable" : {
+      "comment" : "Shown in pharmacy details when the data has no address.",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Illustrative example distance"
+            "value" : "Address unavailable"
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Havainnollistava esimerkkietäisyys"
+            "value" : "Osoite ei saatavilla"
           }
         }
       }
     },
-    "Nearest pharmacy" : {
-      "comment" : "Main screen heading.",
+    "Back to results" : {
+      "comment" : "Button that returns from pharmacy details to the result list.",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nearest pharmacy"
+            "value" : "Back to results"
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lähin apteekki"
+            "value" : "Takaisin tuloksiin"
+          }
+        }
+      }
+    },
+    "Closed" : {
+      "comment" : "Opening hours for a day when the pharmacy is closed.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Closed"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suljettu"
+          }
+        }
+      }
+    },
+    "Helsinki Central Railway Station (default)" : {
+      "comment" : "Name of the default starting point.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Helsinki Central Railway Station (default)"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Helsingin päärautatieasema (oletus)"
+          }
+        }
+      }
+    },
+    "Hours unavailable" : {
+      "comment" : "Notice when the data has no opening hours.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hours unavailable"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aukioloajat eivät saatavilla"
+          }
+        }
+      }
+    },
+    "Map of pharmacies" : {
+      "comment" : "Accessibility label of the map.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Map of pharmacies"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apteekkikartta"
+          }
+        }
+      }
+    },
+    "Mapped pharmacies in Finland · %@" : {
+      "comment" : "Scope of the results and the number of pharmacies in the data. The argument is a formatted count.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mapped pharmacies in Finland · %@"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kartoitetut apteekit Suomessa · %@"
+          }
+        }
+      }
+    },
+    "Mon Tue Wed Thu Fri Sat Sun" : {
+      "comment" : "Short weekday names, Monday first, separated by single spaces.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mon Tue Wed Thu Fri Sat Sun"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ma ti ke to pe la su"
+          }
+        }
+      }
+    },
+    "Nearest pharmacies" : {
+      "comment" : "Title of the results sheet.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nearest pharmacies"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lähimmät apteekit"
+          }
+        }
+      }
+    },
+    "Opening hours" : {
+      "comment" : "Heading of the opening hours in pharmacy details.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opening hours"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aukioloajat"
+          }
+        }
+      }
+    },
+    "Pharmacy details" : {
+      "comment" : "Accessibility label of the pharmacy details.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pharmacy details"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apteekin tiedot"
+          }
+        }
+      }
+    },
+    "Starting point" : {
+      "comment" : "Caption above the active starting point in the results sheet.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Starting point"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lähtöpiste"
+          }
+        }
+      }
+    },
+    "Unnamed pharmacy" : {
+      "comment" : "Name shown for a pharmacy without a name in the data.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unnamed pharmacy"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nimetön apteekki"
+          }
+        }
+      }
+    },
+    "© OpenStreetMap contributors" : {
+      "comment" : "Attribution for the pharmacy data. Keep as is.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "© OpenStreetMap contributors"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "© OpenStreetMap contributors"
           }
         }
       }
