@@ -1,14 +1,14 @@
 # Nearby Pharmacies iOS
 
 A native SwiftUI app that finds the nearest mapped pharmacies in Finland. Product
-decisions live in the planning documents outside this repository; the shared design spec is
-`docs/design/design-spec.md`. The app shows a full-screen MapKit map with a native results
+decisions are summarised in `README.md`; the ADRs and the data importer live in the web
+repository (`nearby-pharmacies-web`), and the shared design spec is `docs/design/design-spec.md`. The app shows a full-screen MapKit map with a native results
 sheet with three detents: closed (the search field only), medium (where it opens) and large.
 It ranks the bundled snapshot from the labeled default origin, Helsinki Central
 Railway Station, and shows the 20 nearest. The origin marker, pins, rows and details stay in
 sync: selecting a row or a pin selects both, draws a dashed line from the origin and shows
 the name, distance, address and opening hours (or their fallbacks) centred in the sheet, which
-keeps its detent (a closed sheet opens to medium). The starting point can also come from a submitted city or address search
+keeps a medium detent (a closed or full sheet comes to medium). The starting point can also come from a submitted city or address search
 (public Nominatim, with the bundled Finnish and Swedish place names as fallback), the device
 location (asked for only after the Helsinki results show) or a point chosen on the map, with
 outside-Finland and land-border notices.
