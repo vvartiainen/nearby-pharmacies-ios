@@ -8,22 +8,11 @@ enum LocationFailure: Error, Hashable {
   case unavailable
 }
 
-/// A device position and its horizontal uncertainty in metres.
-struct LocationFix: Hashable, Sendable {
-  let coordinate: Coordinate
-  let accuracy: Double
-
-  init(_ coordinate: Coordinate, accuracy: Double) {
-    self.coordinate = coordinate
-    self.accuracy = accuracy
-  }
-}
-
 @MainActor
 protocol LocationProviding: AnyObject {
   /// True until the user has answered the system permission prompt.
   var needsPermission: Bool { get }
-  func currentLocation() async -> Result<LocationFix, LocationFailure>
+  func currentLocation() async -> Result<Coordinate, LocationFailure>
   func cancelLocation()
 }
 
@@ -31,7 +20,7 @@ protocol LocationProviding: AnyObject {
 final class DeviceLocation: NSObject, LocationProviding, @preconcurrency CLLocationManagerDelegate {
   private struct Request {
     let manager: CLLocationManager
-    let continuation: CheckedContinuation<Result<LocationFix, LocationFailure>, Never>
+    let continuation: CheckedContinuation<Result<Coordinate, LocationFailure>, Never>
     var timeout: Task<Void, Never>?
   }
 
@@ -53,7 +42,7 @@ final class DeviceLocation: NSObject, LocationProviding, @preconcurrency CLLocat
     (request?.manager ?? makeManager()).authorizationStatus == .notDetermined
   }
 
-  func currentLocation() async -> Result<LocationFix, LocationFailure> {
+  func currentLocation() async -> Result<Coordinate, LocationFailure> {
     guard request == nil else { return .failure(.unavailable) }
     return await withCheckedContinuation { continuation in
       // Each attempt has its own delegate source, so a queued callback can't affect a retry.
@@ -73,7 +62,7 @@ final class DeviceLocation: NSObject, LocationProviding, @preconcurrency CLLocat
     finish(.failure(.unavailable))
   }
 
-  private func finish(_ result: Result<LocationFix, LocationFailure>) {
+  private func finish(_ result: Result<Coordinate, LocationFailure>) {
     guard let request else { return }
     self.request = nil
     request.manager.delegate = nil
@@ -121,9 +110,7 @@ final class DeviceLocation: NSObject, LocationProviding, @preconcurrency CLLocat
     }
     finish(
       .success(
-        LocationFix(
-          Coordinate(lat: location.coordinate.latitude, lon: location.coordinate.longitude),
-          accuracy: location.horizontalAccuracy)))
+        Coordinate(lat: location.coordinate.latitude, lon: location.coordinate.longitude)))
   }
 
   func locationManager(_ manager: CLLocationManager, didFailWithError error: any Error) {

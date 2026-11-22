@@ -24,10 +24,9 @@ final class PharmacyFinder {
   let localization: AppLocalization
   let datasetCount: Int
   private let pharmacies: [Pharmacy]
-  let coverageGeometry: CoverageGeometry?
+  private let coverageGeometry: CoverageGeometry?
 
   private(set) var origin: Origin
-  private(set) var originAddress: AddressIndex.Address?
   private(set) var results: [PharmacyResult] = []
   private(set) var selectedID: String?
   private(set) var showsDetails = false
@@ -69,7 +68,6 @@ final class PharmacyFinder {
   /// it is cleared and the sheet shows the list.
   func setOrigin(_ origin: Origin, fitMap: Bool = true) {
     self.origin = origin
-    originAddress = nil
     selectedID = nil
     showsDetails = false
     fitsMapToOrigin = fitMap
@@ -79,13 +77,6 @@ final class PharmacyFinder {
 
   var selected: PharmacyResult? {
     selectedID.flatMap { id in results.first { $0.id == id } }
-  }
-
-  func setOriginAddress(_ address: AddressIndex.Address?) {
-    switch origin.kind {
-    case .device, .pin: originAddress = address
-    case .default, .search: break
-    }
   }
 
   func select(_ id: String) {
@@ -126,18 +117,11 @@ final class PharmacyFinder {
 
   var originTitle: String {
     if case .search(let title, _) = origin.kind { return title }
-    if let originAddress { return localization.nearAddress(originAddress.street) }
     return originLabel
   }
 
   var originContext: String? {
     if case .search(_, let context) = origin.kind, !context.isEmpty { return context }
-    if let city = originAddress?.city, !city.isEmpty { return city }
     return nil
-  }
-
-  var originFieldLabel: String {
-    guard originAddress != nil else { return originLabel }
-    return [originTitle, originContext].compactMap { $0 }.joined(separator: ", ")
   }
 }

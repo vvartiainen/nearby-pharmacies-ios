@@ -26,7 +26,7 @@ For a physical device, copy `Config/Local.xcconfig.example` to `Config/Local.xcc
 
 ## Data and services
 
-- **Ranking and nearby-address lookup run locally.** The app shares its OpenStreetMap snapshot,
+- **Ranking runs locally.** The app shares its OpenStreetMap snapshot,
   straight-line ranking rules, and test fixture with `nearby-pharmacies-web`, which owns the
   importer and data sync.
 - **Address search** sends submitted text, language, and country filter to Nominatim by default.
@@ -42,7 +42,7 @@ For a physical device, copy `Config/Local.xcconfig.example` to `Config/Local.xcc
 | `NearbyPharmacies/App/` | SwiftUI entry point, map and sheet coordination, finder state |
 | `NearbyPharmacies/{Origin,Map,Results}/` | Origin search and location, map and pins, results sheet and details |
 | `NearbyPharmacies/{Shared,Resources}/` | Theme and localization code, bundled data and configuration |
-| `Packages/PharmacyCore/` | Ranking, data loading, formatting, address lookup and search logic |
+| `Packages/PharmacyCore/` | Ranking, data loading, formatting and search logic |
 | `NearbyPharmaciesTests/`, `NearbyPharmaciesUITests/` | App unit tests and simulator journeys |
 
 ## Checks

@@ -7,12 +7,9 @@ import PharmacyCore
 /// - `UITEST_GEOCODER`: `fixture` answers with `UITEST_GEOCODER_RESPONSE` (a Nominatim JSON
 ///   answer read by the real parser), `unavailable` fails. Unset also fails.
 /// - `UITEST_GEOCODER_DELAY`: seconds before the geocoder answers.
-/// - `UITEST_LOCATION`: `lat,lon` grants a fix accurate to 10 m (`lat,lon,accuracy` sets the
-///   accuracy in metres), `denied`, `timeout` or `unavailable` fail. Unset fails as unavailable.
+/// - `UITEST_LOCATION`: `lat,lon` grants a fix; `denied`, `timeout` or `unavailable` fail.
 /// - `UITEST_LOCATION_DELAY`: seconds before the location answers.
 /// - `UITEST_LOCATION_PROMPT=1`: permission is not determined yet, so the app offers location.
-/// - `UITEST_ADDRESS_INDEX=none`: no street addresses, so a fix or a chosen point keeps its plain
-///   label. By default the bundled index answers, as in the app.
 enum ScriptedServices {
   static var isActive: Bool { ProcessInfo.processInfo.arguments.contains("-UITesting") }
 
@@ -37,26 +34,21 @@ enum ScriptedServices {
       delay: delay("UITEST_GEOCODER_DELAY"))
   }
 
-  static func addresses() -> AddressLookup {
-    environment["UITEST_ADDRESS_INDEX"] == "none" ? AddressLookup(directory: nil) : .bundled
-  }
-
   @MainActor
   static func locator() -> any LocationProviding {
     let script = environment["UITEST_LOCATION"] ?? "unavailable"
-    let result: Result<LocationFix, LocationFailure>
+    let result: Result<Coordinate, LocationFailure>
     switch script {
     case "denied": result = .failure(.denied)
     case "timeout": result = .failure(.timeout)
     case "unavailable": result = .failure(.unavailable)
     default:
-      let parts = script.split(separator: ",").compactMap { Double($0) }
-      result =
-        parts.count == 2 || parts.count == 3
-        ? .success(
-          LocationFix(
-            Coordinate(lat: parts[0], lon: parts[1]), accuracy: parts.count == 3 ? parts[2] : 10))
-        : .failure(.unavailable)
+      let parts = script.split(separator: ",", omittingEmptySubsequences: false)
+      if parts.count == 2, let lat = Double(parts[0]), let lon = Double(parts[1]) {
+        result = .success(Coordinate(lat: lat, lon: lon))
+      } else {
+        result = .failure(.unavailable)
+      }
     }
     return ScriptedLocation(
       result: result, delay: delay("UITEST_LOCATION_DELAY"),
@@ -80,17 +72,17 @@ struct ScriptedGeocoder: Geocoding {
 
 @MainActor
 final class ScriptedLocation: LocationProviding {
-  let result: Result<LocationFix, LocationFailure>
+  let result: Result<Coordinate, LocationFailure>
   let delay: Duration
   let needsPermission: Bool
 
-  init(result: Result<LocationFix, LocationFailure>, delay: Duration, needsPermission: Bool) {
+  init(result: Result<Coordinate, LocationFailure>, delay: Duration, needsPermission: Bool) {
     self.result = result
     self.delay = delay
     self.needsPermission = needsPermission
   }
 
-  func currentLocation() async -> Result<LocationFix, LocationFailure> {
+  func currentLocation() async -> Result<Coordinate, LocationFailure> {
     try? await Task.sleep(for: delay)
     return result
   }

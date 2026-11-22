@@ -31,11 +31,11 @@ final class GatedGeocoder: Geocoding, @unchecked Sendable {
 @MainActor
 final class GatedLocation: LocationProviding {
   var needsPermission = true
-  private var waiting: CheckedContinuation<Result<LocationFix, LocationFailure>, Never>?
+  private var waiting: CheckedContinuation<Result<Coordinate, LocationFailure>, Never>?
   private(set) var requests = 0
   private(set) var cancellations = 0
 
-  func currentLocation() async -> Result<LocationFix, LocationFailure> {
+  func currentLocation() async -> Result<Coordinate, LocationFailure> {
     requests += 1
     return await withCheckedContinuation { waiting = $0 }
   }
@@ -44,7 +44,7 @@ final class GatedLocation: LocationProviding {
     cancellations += 1
   }
 
-  func answer(_ result: Result<LocationFix, LocationFailure>) {
+  func answer(_ result: Result<Coordinate, LocationFailure>) {
     waiting?.resume(returning: result)
     waiting = nil
   }
@@ -97,42 +97,34 @@ struct OriginControllerTests {
     #expect(controller.isLocating)
     #expect(controller.finder.results.first?.name == "Steissin Apteekki")
 
-    location.answer(.success(LocationFix(tampere, accuracy: 10)))
+    location.answer(.success(tampere))
     await settle { !controller.isLocating }
-    #expect(controller.finder.origin.kind == .device)
+    #expect(controller.finder.origin == Origin(kind: .device, coordinate: tampere))
     #expect(controller.finder.originLabel == "Your location")
+    #expect(controller.finder.originTitle == "Your location")
+    #expect(controller.finder.originContext == nil)
     #expect(controller.finder.results.first?.name == "Tullintorin apteekki")
     #expect(controller.finder.selectedID == nil)
     #expect(controller.finder.fitsMapToOrigin)
-
-    await settle { controller.finder.originAddress != nil }
-    #expect(controller.finder.originTitle == "Near Rautatienkatu 25")
-    #expect(controller.finder.originContext == "Tampere")
-    #expect(controller.finder.originFieldLabel == "Near Rautatienkatu 25, Tampere")
-    #expect(controller.finder.originLabel == "Your location", "The map marker keeps its label")
   }
 
-  @Test func anImpreciseFixKeepsYourLocation() async {
-    let controller = controller()
+  @Test func aGrantedFixReranksWithAFinnishLocationLabel() async {
+    let controller = controller("fi")
     controller.requestLocation()
     await settle { location.requests == 1 }
-    location.answer(.success(LocationFix(tampere, accuracy: 500)))
+    location.answer(.success(tampere))
     await settle { !controller.isLocating }
-    try? await Task.sleep(for: .milliseconds(100))
-    #expect(controller.finder.originAddress == nil)
-    #expect(controller.finder.originTitle == "Your location")
+    #expect(controller.finder.originTitle == "Oma sijainti")
+    #expect(controller.finder.results.first?.name == "Tullintorin apteekki")
   }
 
-  @Test func aChosenPointShowsANearbyAddress() async {
-    let controller = controller()
+  @Test func aChosenPointReranksWithALocalizedPinLabel() {
+    let controller = controller("fi")
     controller.choosePoint(tampere)
-    await settle { controller.finder.originAddress != nil }
-    #expect(controller.finder.originTitle == "Near Rautatienkatu 25")
-    #expect(controller.finder.originLabel == "Dropped pin")
-
-    controller.returnToHelsinki()
-    #expect(controller.finder.originAddress == nil)
-    #expect(controller.finder.originTitle == "Helsinki Central Railway Station (default)")
+    #expect(controller.finder.origin == Origin(kind: .pin, coordinate: tampere))
+    #expect(controller.finder.originTitle == "Kartalta valittu kohta")
+    #expect(controller.finder.originContext == nil)
+    #expect(controller.finder.results.first?.name == "Tullintorin apteekki")
   }
 
   @Test(arguments: [LocationFailure.denied, .timeout, .unavailable])
@@ -157,7 +149,7 @@ struct OriginControllerTests {
     #expect(controller.finder.origin == Origin(kind: .pin, coordinate: point))
     #expect(!controller.finder.fitsMapToOrigin, "A point on the map keeps the viewport")
 
-    location.answer(.success(LocationFix(tampere, accuracy: 10)))
+    location.answer(.success(tampere))
     try? await Task.sleep(for: .milliseconds(50))
     #expect(controller.finder.origin.kind == .pin)
     #expect(controller.finder.originLabel == "Dropped pin")

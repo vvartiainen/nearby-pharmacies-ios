@@ -94,7 +94,6 @@ struct AppLocalization: Sendable {
   var locationPending: String { text("Finding your location…") }
   var yourLocation: String { text("Your location") }
   var droppedPin: String { text("Dropped pin") }
-  func nearAddress(_ address: String) -> String { text("Near \(address)") }
   var chooseOnMap: String { text("Choose on map") }
   var searchFromHere: String { text("Search from here") }
   var cancelMapPick: String { text("Cancel") }

@@ -27,9 +27,8 @@ outside-Finland and land-border notices.
 - Location uses foreground Core Location (When In Use) with a 10 second timeout. The app offers
   it once after the first results; the system prompt follows only "Use location" or "Use my
   location". Choosing another origin while a request runs makes its fix irrelevant.
-- A fix accurate to 120 m or better, and a point chosen on the map, then show "Near {street}"
-  with the municipality below, from the bundled OSM address index (`AddressLookup`, as on web).
-  The lookup runs on the device, so these coordinates never leave it either.
+- A device fix is labelled "Your location" and a point chosen on the map is labelled
+  "Dropped pin". The app ranks from those coordinates on the device.
 - Touch and hold the map to choose a point. Panning or zooming only moves the map. "Choose on
   map" shows a target at the centre of the map above the sheet, with "Search from here" and
   "Cancel"; a new origin or a selection also ends it. VoiceOver users get "Search from here" as
@@ -46,12 +45,11 @@ outside-Finland and land-border notices.
 | --- | --- |
 | `NearbyPharmacies.xcodeproj` | Project with the shared `NearbyPharmacies` scheme. Folders are synchronized groups, so new files under the three source folders join their target automatically. |
 | `NearbyPharmacies/App/` | SwiftUI entry point, `ContentView` for map and sheet coordination, and shared `PharmacyFinder` state. |
-| `NearbyPharmacies/Origin/` | Origin model, controller, search view, geocoding, Core Location and nearby-address lookup. |
+| `NearbyPharmacies/Origin/` | Origin model, controller, search view, geocoding and Core Location. |
 | `NearbyPharmacies/Map/`, `NearbyPharmacies/Results/` | Map and markers, results sheet, rows and details. |
 | `NearbyPharmacies/Shared/` | Theme and app localization. English and Finnish strings live in `NearbyPharmacies/Localizable.xcstrings`. |
 | `NearbyPharmacies/Testing/` | Scripted geocoding and location used by previews and UI tests. |
 | `NearbyPharmacies/Resources/Data/` | Synced from the web repo, never edited by hand: `pharmacies.fi.json`, `places.fi.json`, `coverage.fi.json`, `manifest.fi.json`, `ODbL-NOTICE.txt`. Bundled in the app. See [Pharmacy data](#pharmacy-data). |
-| `NearbyPharmacies/Resources/AddressIndex.bundle/` | The street address index (166 gzip shards and `index.json`, about 9.5 MB), synced from the web repo's `public/address-index/`, never edited by hand. |
 | `NearbyPharmaciesTests/` | Swift Testing unit tests, hosted in the app. |
 | `NearbyPharmaciesTests/Fixtures/ranking-v1.json` | Shared ranking fixture, synced from the web repo. Never edit by hand. |
 | `Packages/PharmacyCore/` | Local Swift package (iOS and macOS): haversine distance, ranking, distance display rounding, the `opening_hours` interpreter (the same rules as the web app), address lines, data models and the bundle loader. The app target links it. Its tests run on the Mac. |
@@ -151,8 +149,8 @@ the bundled data. They need no simulator:
 swift test --package-path Packages/PharmacyCore
 ```
 
-Expected last line: `Test run with 57 tests in 12 suites passed`. They check every origin of
-the shared fixture (order, distances within its tolerance, English and Finnish labels), all
+The tests cover every origin of the shared fixture (order, distances within its tolerance,
+English and Finnish labels), all
 19 display-rounding cases, the distance colour bands, the zero distance, the exact three-way tie, two distances with the
 same label, decoding of records without name, address or hours, the bundled snapshot and place
 index against the manifest's counts, and the SHA-256 of each data file against the
@@ -160,8 +158,7 @@ manifest. They also run the web app's `opening_hours` cases and check that the s
 interprets the same 613 of 623 values, plus address lines, name trimming and pin points.
 The origin tests cover the geocoder configuration and request parameters, Nominatim and Photon
 answers, the bundled place fallback (Swedish names, typos, no match for addresses) and the
-coverage notices for Tornio, Haparanda, Tallinn, Helsinki, Hanko, Mariehamn and Tampere. The
-address index tests decode every shard and find the same Tampere address as the web app.
+coverage notices for Tornio, Haparanda, Tallinn, Helsinki, Hanko, Mariehamn and Tampere.
 Fixture labels are compared after its `labelComparison` rule (U+00A0 and U+202F become
 spaces). A separate test pins the exact characters, which match the web app's `Intl`
 output: Finnish groups with U+00A0 ("1 234 km"), and both languages put U+0020 before the
@@ -204,7 +201,7 @@ detent, and the closed sheet then showing only the selected name and distance; p
 Finnish; return to the list with the selection kept; the sheet at Accessibility XXXL text,
 which opens at the medium detent (large on screens shorter than 800 points, such as iPhone SE)
 with a full result visible; and origin selection with scripted answers: the location offer and
-a granted Tampere fix labelled "Near Rautatienkatu 25", "Use my location" leaving the sheet in place, denial, a timeout in Finnish, five "Kauppakatu 1" matches, an empty
+a granted Tampere fix labelled "Your location", "Use my location" leaving the sheet in place, denial, a timeout in Finnish, five "Kauppakatu 1" matches, an empty
 reply in Finnish, the bundled "Tammerfor" fallback, a map pick that wins over a late reply,
 panning that leaves the origin alone, "Choose on map" with "Cancel" and then "Search from here"
 winning over a late fix, and Haparanda outside Finland with "Return to Helsinki":
@@ -249,7 +246,7 @@ pnpm run data:sync-ios -- --ios-repo ../nearby-pharmacies-ios
 pnpm run data:verify -- --ios-repo ../nearby-pharmacies-ios
 ```
 
-The sync prints `copied …` for each file and `data:verify: 173 file(s) match`. Verify alone
+The sync prints `copied …` for each file and `data:verify: 6 file(s) match`. Verify alone
 exits 1 with `missing:` or `differs:` lines when a copy is stale. Commit both repositories
 together.
 
@@ -258,8 +255,6 @@ Where the copies go and who reads them:
 - `NearbyPharmacies/Resources/Data/` is inside the app's synchronized group, so Xcode copies
   the five files into the top level of `NearbyPharmacies.app`. The app reads them with
   `PharmacyDataLoader(bundle: .main)`.
-- `NearbyPharmacies/Resources/AddressIndex.bundle/` is copied as one folder, because Xcode
-  treats a `.bundle` directory as a single resource. `AddressLookup` reads it.
 - `NearbyPharmaciesTests/Fixtures/ranking-v1.json` lands in the unit-test bundle the same
   way.
 - The PharmacyCore tests read both folders in place, relative to their source file

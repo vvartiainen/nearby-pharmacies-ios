@@ -58,7 +58,7 @@ struct OriginSearch: View {
         .onSubmit(submit)
         .autocorrectionDisabled()
         .foregroundStyle(Color.textPrimary)
-        .accessibilityValue(showsOrigin ? finder.originFieldLabel : draft)
+        .accessibilityValue(showsOrigin ? finder.originLabel : draft)
         .accessibilityIdentifier("search.field")
         if showsOrigin {
           VStack(alignment: .leading, spacing: 0) {

@@ -1,4 +1,5 @@
 import CoreLocation
+import PharmacyCore
 import Testing
 
 @testable import NearbyPharmacies
@@ -15,7 +16,7 @@ struct DeviceLocationTests {
     let first = Task { await locator.currentLocation() }
     try await waitUntil { timeouts.count == 1 }
     firstManager.deliver(accuracy: 25)
-    #expect(try await first.value.get().accuracy == 25)
+    #expect(try await first.value.get() == Coordinate(lat: 61.4983, lon: 23.7732))
 
     let second = Task { await locator.currentLocation() }
     try await waitUntil { timeouts.count == 2 }
@@ -26,7 +27,7 @@ struct DeviceLocationTests {
     #expect(secondManager.stops == 0)
 
     secondManager.deliver(accuracy: 500)
-    #expect(try await second.value.get().accuracy == 500)
+    #expect(try await second.value.get() == Coordinate(lat: 61.4983, lon: 23.7732))
     timeouts.elapse(1)
   }
 
@@ -57,7 +58,7 @@ struct DeviceLocationTests {
     try await waitUntil { timeouts.count == 2 }
     locator.locationManager(firstManager, didFailWithError: CLError(.denied))
     secondManager.deliver(accuracy: 0)
-    #expect(try await second.value.get().accuracy == 0)
+    #expect(try await second.value.get() == Coordinate(lat: 61.4983, lon: 23.7732))
     timeouts.elapse(1)
   }
 

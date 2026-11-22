@@ -358,23 +358,6 @@
         }
       }
     },
-    "Near %@" : {
-      "comment" : "Starting point label for a device location or a point chosen on the map with a street address nearby. The argument is the street and house number, for example \"Rautatienkatu 25\".",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Near %@"
-          }
-        },
-        "fi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lähellä: %@"
-          }
-        }
-      }
-    },
     "Nearest pharmacies" : {
       "comment" : "Title of the results sheet.",
       "localizations" : {

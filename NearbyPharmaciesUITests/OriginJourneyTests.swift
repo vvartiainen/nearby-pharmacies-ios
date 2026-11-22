@@ -61,7 +61,7 @@ final class OriginJourneyTests: XCTestCase {
     offer.buttons["Use location"].tap()
 
     waitForLabel(first, "BEGINSWITH", "Tullintorin apteekki")
-    waitForOrigin(app, "Near Rautatienkatu 25, Tampere")
+    waitForOrigin(app, "Your location")
     attachScreenshot(app, name: "Ranked from the device location (en)")
 
     let id = first.identifier.replacingOccurrences(of: "row.", with: "")
@@ -213,7 +213,7 @@ final class OriginJourneyTests: XCTestCase {
       language: "en", locale: "en_GB",
       environment: [
         "UITEST_GEOCODER": "fixture", "UITEST_GEOCODER_RESPONSE": Self.kauppakatu,
-        "UITEST_GEOCODER_DELAY": "4", "UITEST_ADDRESS_INDEX": "none",
+        "UITEST_GEOCODER_DELAY": "4",
       ])
     let field = app.textFields["search.field"]
     XCTAssertTrue(field.waitForExistence(timeout: 15))
@@ -251,10 +251,7 @@ final class OriginJourneyTests: XCTestCase {
   func testChooseOnMapWinsOverALateLocationFixInFinnish() {
     let app = JourneyApp.launch(
       language: "fi", locale: "fi_FI",
-      environment: [
-        "UITEST_LOCATION": Self.tampere, "UITEST_LOCATION_DELAY": "15",
-        "UITEST_ADDRESS_INDEX": "none",
-      ])
+      environment: ["UITEST_LOCATION": Self.tampere, "UITEST_LOCATION_DELAY": "15"])
     let location = app.buttons["search.location"]
     XCTAssertTrue(location.waitForExistence(timeout: 15))
     location.tap()

@@ -28,23 +28,20 @@ final class OriginController {
   private let geocoder: any Geocoding
   private let locator: any LocationProviding
   private let places: [Place]
-  private let addresses: AddressLookup
   private let defaults: UserDefaults
   private var searchTask: Task<Void, Never>?
   private var locationRequest: UUID?
-  private var addressTask: Task<Void, Never>?
 
   static let offerDismissedKey = "locationOfferDismissed"
 
   init(
     finder: PharmacyFinder, geocoder: any Geocoding, locator: any LocationProviding,
-    places: [Place], addresses: AddressLookup = .bundled, defaults: UserDefaults = .standard
+    places: [Place], defaults: UserDefaults = .standard
   ) {
     self.finder = finder
     self.geocoder = geocoder
     self.locator = locator
     self.places = places
-    self.addresses = addresses
     self.defaults = defaults
     offersLocation = locator.needsPermission && !defaults.bool(forKey: Self.offerDismissedKey)
   }
@@ -105,7 +102,6 @@ final class OriginController {
 
   func choosePoint(_ coordinate: Coordinate) {
     apply(Origin(kind: .pin, coordinate: coordinate), fitMap: false)
-    lookUpAddress(near: coordinate, accuracy: 0)
   }
 
   func returnToHelsinki() {
@@ -125,29 +121,15 @@ final class OriginController {
       guard let self, self.locationRequest == request else { return }
       self.locationRequest = nil
       switch result {
-      case .success(let fix):
-        self.apply(Origin(kind: .device, coordinate: fix.coordinate))
-        self.lookUpAddress(near: fix.coordinate, accuracy: fix.accuracy)
+      case .success(let coordinate):
+        self.apply(Origin(kind: .device, coordinate: coordinate))
       case .failure(let failure):
         self.location = .failed(failure)
       }
     }
   }
 
-  private func lookUpAddress(near coordinate: Coordinate, accuracy: Double) {
-    guard AddressIndex.accepts(accuracy: accuracy), finder.coverage != .outside else { return }
-    let change = finder.originChangeCount
-    let coverage = finder.coverageGeometry
-    addressTask = Task { [weak self, addresses] in
-      let address = await addresses.nearest(to: coordinate, coverage: coverage)
-      guard let self, !Task.isCancelled, self.finder.originChangeCount == change else { return }
-      self.finder.setOriginAddress(address)
-    }
-  }
-
   private func apply(_ origin: Origin, fitMap: Bool = true) {
-    addressTask?.cancel()
-    addressTask = nil
     cancelSearch()
     if locationRequest != nil { locator.cancelLocation() }
     locationRequest = nil
