@@ -15,6 +15,8 @@ struct PharmacyMap: View {
   /// The status bar height: the map buttons sit below it.
   var topInset: CGFloat
   var onPick: (Coordinate) -> Void = { _ in }
+  /// Reports the visible map rect when the camera stops moving.
+  var onCameraChange: (MKMapRect) -> Void = { _ in }
   /// From "Choose on map" until "Search from here", "Cancel", a new origin or a selection.
   @State private var isPicking = false
   /// A touch and hold on a pin chooses the point, so the tap that ends it must not also select
@@ -145,6 +147,7 @@ struct PharmacyMap: View {
     }
     // Apple's own pharmacy places would look like results that are not in the ranking.
     .mapStyle(.standard(pointsOfInterest: .excluding([.pharmacy])))
+    .onMapCameraChange(frequency: .onEnd) { onCameraChange($0.rect) }
     .mapControls {
       MapCompass()
       MapScaleView()

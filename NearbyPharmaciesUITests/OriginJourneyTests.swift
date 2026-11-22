@@ -228,9 +228,21 @@ final class OriginJourneyTests: XCTestCase {
     XCTAssertFalse(app.buttons["search.submit"].isEnabled)
 
     JourneyApp.collapseSheet(app, topElement: field)
-    JourneyApp.mapPoint(app).press(forDuration: 1)
+    // A point near the bottom of the map, where the opened sheet would cover it.
+    JourneyApp.mapPoint(app, y: 0.75).press(forDuration: 1)
     waitForOrigin(app, "Dropped pin")
-    XCTAssertTrue(app.descendants(matching: .any)["map.origin"].label.hasSuffix("Dropped pin"))
+    let marker = app.descendants(matching: .any)["map.origin"]
+    XCTAssertTrue(marker.label.hasSuffix("Dropped pin"))
+    // The closed sheet opens half way, and the map moves the point above it.
+    let window = app.windows.firstMatch.frame
+    let revealed = NSPredicate { _, _ in
+      field.frame.minY < window.height * 0.6 && marker.frame.maxY < field.frame.minY - 20
+        && marker.frame.minY > 60
+    }
+    XCTAssertEqual(
+      XCTWaiter.wait(
+        for: [XCTNSPredicateExpectation(predicate: revealed, object: nil)], timeout: 5),
+      .completed, "The sheet opens and the point stays in view")
     XCTAssertFalse(app.staticTexts["details.name"].exists, "A touch and hold does not select a pin")
     let reranked = JourneyApp.firstRow(app).label
 

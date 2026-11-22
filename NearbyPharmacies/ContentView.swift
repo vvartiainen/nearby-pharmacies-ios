@@ -25,6 +25,10 @@ struct ContentView: View {
   @State private var closedHeight: CGFloat = 110
   /// A selection made while the sheet was closed opens it, then fits once it settles.
   @State private var fitsSelectionWhenSettled = false
+  /// A point chosen while the sheet was closed opens it, then moves into view once it settles.
+  @State private var revealsOriginWhenSettled = false
+  /// The map area in view when the camera last stopped, for keeping the zoom.
+  @State private var visibleRect: MKMapRect?
   @State private var settleTask: Task<Void, Never>?
   private let accessibilityTextSize: Bool
 
@@ -46,7 +50,7 @@ struct ContentView: View {
     GeometryReader { proxy in
       PharmacyMap(
         finder: finder, position: $position, pickPoint: pickPoint, topInset: safeAreaTop,
-        onPick: controller.choosePoint
+        onPick: controller.choosePoint, onCameraChange: { visibleRect = $0 }
       )
       // Keeps MapKit's legal notice and the scale above the sheet. The padding applies inside
       // the full-screen frame, so it has to come before `ignoresSafeArea`.
@@ -73,7 +77,7 @@ struct ContentView: View {
       } action: {
         sheetTop = $0
         fitInitially()
-        fitSelectionOnceSettled()
+        actOnceSettled()
       }
       .presentationDetents([closedDetent, .medium, .large], selection: $detent)
       .presentationBackgroundInteraction(.enabled(upThrough: .medium))
@@ -95,8 +99,17 @@ struct ContentView: View {
       }
     }
     .onChange(of: finder.originChangeCount) {
+      let wasClosed = detent == closedDetent
       restoreDetentAfterSearch()
-      if finder.fitsMapToOrigin { fitOriginAndResults(animated: true) }
+      if finder.fitsMapToOrigin {
+        fitOriginAndResults(animated: true)
+      } else if finder.origin.kind == .pin, wasClosed {
+        // Like a selection, a point chosen on the map opens a closed sheet to show its results,
+        // and the map moves the point above it.
+        revealsOriginWhenSettled = true
+        if detent == closedDetent { detent = .medium }
+        actOnceSettled()
+      }
     }
   }
 
@@ -122,16 +135,35 @@ struct ContentView: View {
     if restoresClosed { detentBeforeSearch = closedDetent }
   }
 
-  /// Fits a pending selection once the sheet has stopped moving, so the fit uses its final height.
-  private func fitSelectionOnceSettled() {
-    guard fitsSelectionWhenSettled else { return }
+  /// Fits a pending selection or reveals a chosen point once the sheet has stopped moving, so the
+  /// map uses its final height.
+  private func actOnceSettled() {
+    guard fitsSelectionWhenSettled || revealsOriginWhenSettled else { return }
     settleTask?.cancel()
     settleTask = Task {
       try? await Task.sleep(for: .milliseconds(150))
       guard !Task.isCancelled else { return }
-      fitsSelectionWhenSettled = false
-      fitSelection()
+      if fitsSelectionWhenSettled {
+        fitsSelectionWhenSettled = false
+        fitSelection()
+      }
+      if revealsOriginWhenSettled {
+        revealsOriginWhenSettled = false
+        revealOrigin()
+      }
     }
+  }
+
+  /// Centres the origin in the map above the sheet at the same zoom: the width in view stays.
+  private func revealOrigin() {
+    guard let visibleRect, mapSize.width > 0 else { return }
+    let framedHeight = mapSize.height - mapBottomInset
+    let width = visibleRect.size.width
+    let height = width * framedHeight / mapSize.width
+    let centre = MKMapPoint(finder.origin.coordinate.location)
+    let rect = MKMapRect(
+      x: centre.x - width / 2, y: centre.y - height / 2, width: width, height: height)
+    withAnimation(.easeInOut(duration: 0.35)) { position = .rect(rect) }
   }
 
   private func restoreDetentAfterSearch() {
