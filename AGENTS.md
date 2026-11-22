@@ -157,6 +157,14 @@ ignored `Packages/PharmacyCore/.build/`.
 
 ### App tests (need a simulator)
 
+The UI suite takes about three minutes per simulator, so scope it to the change:
+
+- While iterating, run the unit tests and only the UI test class or test that covers the
+  change, on one simulator (see [Run part of the UI suite](#run-part-of-the-ui-suite)).
+- Before proposing a commit, run the full UI suite once, on one iPhone simulator.
+- Repeat it on iPhone SE, in dark appearance or at a large text size only when the change
+  affects layout, at a checkpoint, or when asked.
+
 xcodebuild refuses to overwrite a result bundle, so each command deletes its old bundle
 first.
 
@@ -186,6 +194,19 @@ winning over a late fix, and Haparanda outside Finland with "Return to Helsinki"
 ```sh
 rm -rf .build/results/ui.xcresult && xcodebuild test -project NearbyPharmacies.xcodeproj -scheme NearbyPharmacies -destination 'platform=iOS Simulator,id=SIMULATOR_UDID' -derivedDataPath .build/DerivedData -resultBundlePath .build/results/ui.xcresult -only-testing:NearbyPharmaciesUITests
 ```
+
+#### Run part of the UI suite
+
+`-only-testing` takes a test class or a single test, and can be repeated. The classes are
+`LaunchSmokeTests` (launch in both languages), `SelectionTests` (rows, pins and details),
+`LargeTextTests` (Accessibility XXXL) and `OriginJourneyTests` (search, location and map
+picking). For example, one class and one test together:
+
+```sh
+rm -rf .build/results/ui-part.xcresult && xcodebuild test -project NearbyPharmacies.xcodeproj -scheme NearbyPharmacies -destination 'platform=iOS Simulator,id=SIMULATOR_UDID' -derivedDataPath .build/DerivedData -resultBundlePath .build/results/ui-part.xcresult -only-testing:NearbyPharmaciesUITests/SelectionTests -only-testing:NearbyPharmaciesUITests/OriginJourneyTests/testChooseOnMapWinsOverALateLocationFixInFinnish
+```
+
+Add `-only-testing:NearbyPharmaciesTests` to run the unit tests in the same build.
 
 Export the UI test screenshots:
 
