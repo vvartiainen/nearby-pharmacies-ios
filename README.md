@@ -43,8 +43,9 @@ See [agent stop hooks](AGENTS.md#agent-stop-hooks) for Betterleaks setup and the
 
 The default Nominatim configuration is for one reviewer at a time. On the first address search,
 the app checks [the published configuration](https://github.com/vvartiainen/nearby-pharmacies-ios/blob/main/NearbyPharmacies/Resources/geocoder.json)
-so it can switch providers on the next launch. Set that file to `{"provider":"local"}` to use
-bundled city search. Source builds use the bundled configuration when the public file is unavailable.
+and uses it for that search and subsequent searches until the app restarts. Set that file to
+`{"provider":"local"}` to use bundled city search. If the public file is unavailable, the app
+uses its bundled configuration for the session.
 [Nominatim usage policy](https://operations.osmfoundation.org/policies/nominatim/)
 
 ## Repository

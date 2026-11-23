@@ -20,10 +20,8 @@ outside-Finland and land-border notices.
   `public/geocoder.json`). There is no autocomplete and no retry; `NominatimGeocoder` keeps at
   most one request in flight, at most one a second, and a session cache. Device coordinates
   never leave the device.
-- `NominatimGeocoder.contactURL` is empty until the project has a public URL. Set it then, so
-  the User-Agent identifies the app as the Nominatim usage policy asks.
-  `NominatimGeocoder.remoteConfigURL` can point at the deployed `geocoder.json` to switch the
-  provider without an app update; until then the bundled copy is used.
+- The geocoder User-Agent identifies the app with its GitHub repository URL. See the
+  [reviewer demo](README.md#reviewer-demo) for provider configuration and fallback behavior.
 - Location uses foreground Core Location (When In Use) with a 10 second timeout. The app offers
   it once after the first results; the system prompt follows only "Use location" or "Use my
   location". Choosing another origin while a request runs makes its fix irrelevant.
