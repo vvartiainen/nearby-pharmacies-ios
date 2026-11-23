@@ -69,6 +69,14 @@ scripts/style.sh check --all
 Run the app and UI tests with **Product → Test** in Xcode on an iPhone simulator. UI tests use
 scripted geocoding and location. See [AGENTS.md](AGENTS.md) for command-line testing and data sync.
 
+### Continuous integration
+
+These checks run locally for this submission. A GitHub Actions workflow could run them on a macOS
+runner for pushes and pull requests, using a fixed Xcode version and iPhone simulator. The
+workflow would run the Swift package and style checks, then run the app and UI tests with
+`xcodebuild test` without signing credentials. It could upload the `.xcresult` bundle when
+a test fails.
+
 ## Limitations
 
 - Distances are straight lines. Street-address search requires a network connection.
