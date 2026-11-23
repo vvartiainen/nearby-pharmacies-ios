@@ -7,6 +7,12 @@
             "type": "command",
             "command": "\"$(git rev-parse --show-toplevel)/scripts/agent-stop-hook.sh\"",
             "timeout": 60
+          },
+          {
+            "type": "command",
+            "command": "\"$(git rev-parse --show-toplevel)/scripts/secret-scan.sh\" --hook",
+            "timeout": 60,
+            "statusMessage": "Scanning for secrets with Betterleaks"
           }
         ]
       }

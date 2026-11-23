@@ -73,6 +73,13 @@ Run every command from the repository root. Commands that use `xcodebuild` or `s
 need CoreSimulator, which agent sandboxes usually block. Run them outside the sandbox,
 with approval.
 
+## Development shell
+
+From the repository root, run `nix develop` with flakes enabled. With direnv and nix-direnv
+configured in your shell, run `direnv allow` once to load it automatically when you enter the
+directory. The shell provides Betterleaks 1.x, Git, and jq on Apple Silicon Macs.
+Install Xcode and the simulator runtime separately. For the data sync, use the web repository's shell.
+
 ## Choose a simulator
 
 1. List available simulators and copy the UDID of an iPhone:
@@ -287,7 +294,7 @@ line length. Fix other rules, such as naming, by hand. `format` writes through t
 shell rather than with `--in-place`, so it also works in agent sandboxes. Set
 `SWIFT_FORMAT` to use another swift-format binary.
 
-## Agent stop hook
+## Agent stop hooks
 
 `scripts/agent-stop-hook.sh` runs `scripts/style.sh check` when an agent finishes a
 turn. If the check fails, the hook exits 2 and prints the diagnostics and fix commands
@@ -309,10 +316,28 @@ Enabling:
   directory, not in a parent directory. Accept the workspace trust prompt for the
   folder, then confirm the hook in `/hooks`. `"disableAllHooks": true` in local settings
   turns it off.
-- **Codex** reads `.codex/hooks.json` only for a trusted project, and only after you
-  review and trust this exact hook definition in `/hooks`. Any change to the definition
-  needs review again. Hooks are on by default; `[features] hooks = false` disables
-  them.
+- **Codex** reads `.codex/hooks.json` only for a trusted project. Review and trust each
+  hook definition in `/hooks`. Changes to a definition need review again. Set `[features] hooks = false`
+  to disable hooks.
+
+### Secret scanning
+
+Both agents run `scripts/secret-scan.sh --hook` on `Stop` alongside the style check.
+Start the agent from the development shell so it inherits Betterleaks and jq on `PATH`.
+You can also install Betterleaks 1.x and jq separately.
+
+The scan checks tracked files and non-ignored untracked files in the working tree, plus
+staged additions and edits from Git's index. It runs locally. A finding requests one
+continuation and becomes a warning if it persists. A scan error also produces a warning.
+The hook gives a summary without printing the scanner's output.
+
+Run these from the repository root to view redacted findings and scan local Git history
+before publishing:
+
+```sh
+scripts/secret-scan.sh
+betterleaks git --log-opts=--all --redact=100 --verbose .
+```
 
 ## Commits
 

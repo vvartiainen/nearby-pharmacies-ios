@@ -13,3 +13,5 @@ DerivedData/
 
 # Personal signing settings (see Config/Signing.xcconfig)
 /Config/Local.xcconfig
+
+/.direnv/

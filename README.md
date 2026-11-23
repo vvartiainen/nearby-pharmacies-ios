@@ -24,6 +24,10 @@ Type, and dark mode. To try device location in the simulator, set a custom locat
 For a physical device, copy `Config/Local.xcconfig.example` to `Config/Local.xcconfig` and set
 `DEVELOPMENT_TEAM` in that local file.
 
+On Apple Silicon Macs, the optional Nix shell provides the agent hook tools. Run `nix develop`,
+or run `direnv allow` with direnv and nix-direnv configured. Xcode and the simulator runtime are installed separately.
+See [agent stop hooks](AGENTS.md#agent-stop-hooks) for Betterleaks setup and the history scan.
+
 ## Data and services
 
 - **Ranking runs locally.** The app shares its OpenStreetMap snapshot,
