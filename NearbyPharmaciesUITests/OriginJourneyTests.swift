@@ -162,6 +162,27 @@ final class OriginJourneyTests: XCTestCase {
   }
 
   @MainActor
+  func testEditingPendingSearchDiscardsItsMatches() {
+    let app = JourneyApp.launch(
+      language: "en", locale: "en_GB",
+      environment: [
+        "UITEST_GEOCODER": "fixture", "UITEST_GEOCODER_RESPONSE": Self.kauppakatu,
+        "UITEST_GEOCODER_DELAY": "4",
+      ])
+    let field = app.textFields["search.field"]
+    let submit = app.buttons["search.submit"]
+    XCTAssertTrue(field.waitForExistence(timeout: 15))
+    field.tap()
+    field.typeText("Kauppakatu 1")
+    submit.tap()
+    XCTAssertFalse(submit.isEnabled)
+    field.typeText("2")
+    XCTAssertEqual(field.value as? String, "Kauppakatu 12")
+    XCTAssertTrue(submit.isEnabled)
+    XCTAssertFalse(app.buttons["match.0"].waitForExistence(timeout: 5))
+  }
+
+  @MainActor
   func testEmptyReplyKeepsTheOriginInFinnish() {
     let app = JourneyApp.launch(
       language: "fi", locale: "fi_FI",

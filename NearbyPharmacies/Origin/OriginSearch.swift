@@ -32,11 +32,7 @@ struct OriginSearch: View {
       matches
     }
     .onChange(of: draft) {
-      // Editing the text closes the matches of the previous search.
-      switch controller.search {
-      case .matches, .empty, .unavailable: controller.cancelSearch()
-      case .idle, .pending: break
-      }
+      controller.cancelSearch()
     }
   }
 
