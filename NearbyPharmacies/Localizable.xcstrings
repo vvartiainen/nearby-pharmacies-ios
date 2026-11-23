@@ -511,19 +511,19 @@
         }
       }
     },
-    "Search text is sent to OpenStreetMap’s Nominatim service. Enter a public place or address." : {
+    "Online search sends text to a geocoding service. Enter a public place or address." : {
       "comment" : "Privacy note under the search field.",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Search text is sent to OpenStreetMap’s Nominatim service. Enter a public place or address."
+            "value" : "Online search sends text to a geocoding service. Enter a public place or address."
           }
         },
         "fi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hakuteksti lähetetään OpenStreetMapin Nominatim-palveluun. Syötä julkinen paikka tai osoite."
+            "value" : "Verkkohaku lähettää hakutekstin geokoodauspalveluun. Syötä julkinen paikka tai osoite."
           }
         }
       }

@@ -39,6 +39,14 @@ See [agent stop hooks](AGENTS.md#agent-stop-hooks) for Betterleaks setup and the
 - **MapKit** provides the basemap and the app draws its own pharmacy results. The
   [design spec](docs/design/design-spec.md) documents interactions shared with the web app.
 
+## Reviewer demo
+
+The default Nominatim configuration is for one reviewer at a time. On the first address search,
+the app checks [the published configuration](https://github.com/vvartiainen/nearby-pharmacies-ios/blob/main/NearbyPharmacies/Resources/geocoder.json)
+so it can switch providers on the next launch. Set that file to `{"provider":"local"}` to use
+bundled city search. Source builds use the bundled configuration when the public file is unavailable.
+[Nominatim usage policy](https://operations.osmfoundation.org/policies/nominatim/)
+
 ## Repository
 
 | Path | Contents |
@@ -66,7 +74,6 @@ scripted geocoding and location. See [AGENTS.md](AGENTS.md) for command-line tes
 - Distances are straight lines. Street-address search requires a network connection.
 - Address and opening-hours availability depend on the snapshot. The weekly schedule excludes
   public holidays.
-- Set `NominatimGeocoder.contactURL` to the public project URL before publishing.
 
 ## Development
 
@@ -77,4 +84,7 @@ version with Claude Code and Codex in T3 Code.
 
 Pharmacy, place, boundary, and address data © OpenStreetMap contributors, under the
 [Open Database License](https://www.openstreetmap.org/copyright). See the
-[bundled data notice](NearbyPharmacies/Resources/Data/ODbL-NOTICE.txt). The basemap is Apple Maps.
+[bundled data notice](NearbyPharmacies/Resources/Data/ODbL-NOTICE.txt) and
+[machine-readable snapshot](NearbyPharmacies/Resources/Data/). The results link to the exact files
+and their notice at the published snapshot commit. Update the link when syncing a new snapshot.
+The basemap is Apple Maps.

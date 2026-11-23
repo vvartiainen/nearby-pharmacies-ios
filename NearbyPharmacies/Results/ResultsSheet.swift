@@ -73,8 +73,7 @@ struct ResultsSheet: View {
   // MARK: - List
 
   private var list: some View {
-    let localization = finder.localization
-    return ScrollViewReader { proxy in
+    ScrollViewReader { proxy in
       ScrollView {
         VStack(alignment: .leading, spacing: Spacing.lg) {
           header
@@ -89,11 +88,6 @@ struct ResultsSheet: View {
               .accessibilityFocused($focus, equals: .row(result.id))
             }
           }
-          Text(localization.mapAttribution)
-            .font(.footnote)
-            .foregroundStyle(Color.textSecondary)
-            .frame(maxWidth: .infinity, alignment: .trailing)
-            .accessibilityIdentifier("attribution")
         }
         .padding(.horizontal, Spacing.lg)
         .padding(.top, Self.topPadding)
@@ -115,6 +109,11 @@ struct ResultsSheet: View {
   }
 
   private static let topID = "sheet.top"
+  // Version containing the exact bundled data and its ODbL notice.
+  private static let dataLicenceURL = URL(
+    string:
+      "https://github.com/vvartiainen/nearby-pharmacies-ios/tree/92893ccb8f64eec9fb7be45a3da0680f15d9a5a4/NearbyPharmacies/Resources/Data"
+  )!
   static let topPadding = Spacing.xl
   private static let detailsMaxWidth: CGFloat = 448
 
@@ -140,6 +139,10 @@ struct ResultsSheet: View {
         .font(.footnote)
         .foregroundStyle(Color.textSecondary)
         .accessibilityIdentifier("results.scope")
+      Link(localization.mapAttribution, destination: Self.dataLicenceURL)
+        .font(.footnote)
+        .tint(Color.interactivePrimary)
+        .accessibilityIdentifier("attribution")
     }
     .fixedSize(horizontal: false, vertical: true)
     .dynamicTypeSize(...DynamicTypeSize.xxxLarge)

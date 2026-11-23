@@ -16,16 +16,16 @@ enum GeocodingError: Error {
 /// per submitted search, at most one in flight and one a second, no retries, and a cache for the
 /// session. Requests carry only the search text, the language and the region filter.
 actor NominatimGeocoder: Geocoding {
-  /// Set to the project's public repository or demo URL once it is published, so the operators
-  /// of the geocoder can identify the app from its User-Agent.
-  static let contactURL: String? = nil
-  /// A deployed `geocoder.json` that can switch the provider without an app update. The app falls
-  /// back to its bundled copy, which is what it uses until a deployment URL is set.
-  static let remoteConfigURL: URL? = nil
+  private static let contactURL = "https://github.com/vvartiainen/nearby-pharmacies-ios"
+  // The published source repository serves the switchable configuration for reviewer builds.
+  private static let remoteConfigURL = URL(
+    string:
+      "https://raw.githubusercontent.com/vvartiainen/nearby-pharmacies-ios/main/NearbyPharmacies/Resources/geocoder.json"
+  )!
 
   private let session: URLSession
-  private let bundledConfig: GeocoderConfig
-  private var config: GeocoderConfig?
+  private let bundledConfig: GeocoderConfig?
+  private var configRequest: Task<GeocoderConfig?, Never>?
   private var cache: [String: [PlaceMatch]] = [:]
   private var cacheOrder: [String] = []
   private var inFlight = false
@@ -39,18 +39,18 @@ actor NominatimGeocoder: Geocoding {
     configuration.timeoutIntervalForRequest = 6
     let version = bundle.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0"
     configuration.httpAdditionalHeaders = [
-      "User-Agent": ["NearbyPharmacies/\(version)", Self.contactURL.map { "(\($0))" }]
-        .compactMap { $0 }.joined(separator: " ")
+      "User-Agent": "NearbyPharmacies/\(version) (\(Self.contactURL))"
     ]
     session = URLSession(configuration: configuration)
     bundledConfig =
       bundle.url(forResource: "geocoder", withExtension: "json")
       .flatMap { try? Data(contentsOf: $0) }
-      .flatMap(GeocoderConfig.decode) ?? .default
+      .flatMap(GeocoderConfig.decode)
   }
 
   func search(_ query: String, language: String) async throws -> [PlaceMatch] {
-    let config = await loadConfig()
+    guard let config = await loadConfig() else { return [] }
+    try Task.checkCancellation()
     let key = "\(language):\(query.precomposedStringWithCanonicalMapping.lowercased())"
     if let cached = cache[key] { return cached }
     let now = ContinuousClock.now
@@ -75,20 +75,19 @@ actor NominatimGeocoder: Geocoding {
     return matches
   }
 
-  private func loadConfig() async -> GeocoderConfig {
-    if let config { return config }
-    var loaded = bundledConfig
-    if let url = Self.remoteConfigURL {
-      var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData)
+  private func loadConfig() async -> GeocoderConfig? {
+    if let configRequest { return await configRequest.value }
+    let requestTask = Task { [session, bundledConfig] in
+      var request = URLRequest(
+        url: Self.remoteConfigURL, cachePolicy: .reloadIgnoringLocalCacheData)
       request.timeoutInterval = 3
-      if let (data, response) = try? await session.data(for: request),
-        (response as? HTTPURLResponse)?.statusCode == 200,
-        let remote = GeocoderConfig.decode(data)
-      {
-        loaded = remote
-      }
+      guard let (data, response) = try? await session.data(for: request),
+        (response as? HTTPURLResponse)?.statusCode == 200
+      else { return bundledConfig }
+      // A local provider or invalid online configuration leaves search on the bundled index.
+      return GeocoderConfig.decode(data)
     }
-    config = loaded
-    return loaded
+    configRequest = requestTask
+    return await requestTask.value
   }
 }

@@ -17,7 +17,7 @@ private func english(_ code: String) -> String {
 
   @Test(arguments: [
     #"{"provider":"nominatim","endpoint":"http://nominatim.example/search","countryCode":"fi"}"#,
-    #"{"provider":"geoapify","endpoint":"https://api.geoapify.com/v1/geocode/search","countryCode":"fi"}"#,
+    #"{"provider":"unknown","endpoint":"https://example.org/search","countryCode":"fi"}"#,
     #"{"provider":"photon","endpoint":"https://photon.example/api","countryCode":"fin"}"#,
     #"[]"#,
   ])

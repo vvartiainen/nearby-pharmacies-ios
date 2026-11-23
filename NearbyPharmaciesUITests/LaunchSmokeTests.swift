@@ -42,6 +42,7 @@ final class LaunchSmokeTests: XCTestCase {
     XCTAssertEqual(
       normalizingSpaces(app.staticTexts["results.scope"].label), scope, file: file, line: line)
     XCTAssertEqual(JourneyApp.originText(app), origin, file: file, line: line)
+    XCTAssertTrue(app.links["attribution"].isHittable, file: file, line: line)
 
     let first = app.buttons[JourneyApp.row(JourneyApp.steissin)]
     XCTAssertTrue(

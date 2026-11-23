@@ -74,7 +74,7 @@ struct AppLocalization: Sendable {
   var searchPending: String { text("Searching…") }
   var searchPrivacy: String {
     text(
-      "Search text is sent to OpenStreetMap’s Nominatim service. Enter a public place or address.")
+      "Online search sends text to a geocoding service. Enter a public place or address.")
   }
   var searchAttribution: String { text("Search © OpenStreetMap contributors") }
   var chooseMatch: String { text("Choose a match") }
